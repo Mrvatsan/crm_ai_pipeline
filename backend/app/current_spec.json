@@ -1,0 +1,397 @@
+{
+  "app_name": "Apex CRM",
+  "db_schema": {
+    "tables": [
+      {
+        "name": "customers",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer",
+            "is_primary_key": true,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "full_name",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "company",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "email",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "phone",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": true,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "deal_value",
+            "type": "real",
+            "is_primary_key": false,
+            "is_nullable": true,
+            "default_value": "0.0",
+            "foreign_key": null
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": true,
+            "default_value": "'Lead'",
+            "foreign_key": null
+          }
+        ],
+        "seed_data": [
+          {
+            "full_name": "Tony Stark",
+            "company": "Stark Industries",
+            "email": "tony@stark.com",
+            "phone": "555-0100",
+            "deal_value": 750000.0,
+            "status": "Negotiation"
+          },
+          {
+            "full_name": "Bruce Wayne",
+            "company": "Wayne Enterprises",
+            "email": "bruce@wayne.com",
+            "phone": "555-0199",
+            "deal_value": 1250000.0,
+            "status": "Contacted"
+          },
+          {
+            "full_name": "Diana Prince",
+            "company": "Themyscira Exports",
+            "email": "diana@amazon.com",
+            "phone": "555-0150",
+            "deal_value": 35000.0,
+            "status": "Lead"
+          }
+        ]
+      },
+      {
+        "name": "interactions",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer",
+            "is_primary_key": true,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "customer_id",
+            "type": "integer",
+            "is_primary_key": false,
+            "is_nullable": true,
+            "default_value": null,
+            "foreign_key": "customers.id"
+          },
+          {
+            "name": "interaction_type",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "summary",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": false,
+            "default_value": null,
+            "foreign_key": null
+          },
+          {
+            "name": "follow_up_date",
+            "type": "text",
+            "is_primary_key": false,
+            "is_nullable": true,
+            "default_value": null,
+            "foreign_key": null
+          }
+        ],
+        "seed_data": [
+          {
+            "customer_id": 1,
+            "interaction_type": "Call",
+            "summary": "Discussed upgrade from Mark VII armor integration. Highly interested.",
+            "follow_up_date": "2026-06-02"
+          },
+          {
+            "customer_id": 2,
+            "interaction_type": "Email",
+            "summary": "Sent enterprise billing agreement options.",
+            "follow_up_date": "2026-06-15"
+          },
+          {
+            "customer_id": 1,
+            "interaction_type": "Meeting",
+            "summary": "Signed preliminary licensing deal.",
+            "follow_up_date": "2026-06-10"
+          }
+        ]
+      }
+    ]
+  },
+  "api_schema": {
+    "endpoints": [
+      {
+        "path": "/api/customers",
+        "method": "GET",
+        "operation": "list",
+        "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "Max records to return",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "type": "int",
+            "description": "Records to offset",
+            "required": false
+          }
+        ],
+        "request_fields": [],
+        "response_fields": [
+          "id",
+          "id",
+          "full_name",
+          "deal_value"
+        ]
+      },
+      {
+        "path": "/api/customers/{id}",
+        "method": "GET",
+        "operation": "retrieve",
+        "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [],
+        "response_fields": [
+          "id",
+          "id",
+          "full_name",
+          "deal_value"
+        ]
+      },
+      {
+        "path": "/api/customers",
+        "method": "POST",
+        "operation": "create",
+        "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [
+          "full_name",
+          "deal_value"
+        ],
+        "response_fields": [
+          "id",
+          "id",
+          "full_name",
+          "deal_value"
+        ]
+      },
+      {
+        "path": "/api/customers/{id}",
+        "method": "PUT",
+        "operation": "update",
+        "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [
+          "full_name",
+          "deal_value"
+        ],
+        "response_fields": [
+          "id",
+          "id",
+          "full_name",
+          "deal_value"
+        ]
+      },
+      {
+        "path": "/api/customers/{id}",
+        "method": "DELETE",
+        "operation": "delete",
+        "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [
+          "admin"
+        ],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [],
+        "response_fields": [
+          "success",
+          "message"
+        ]
+      },
+      {
+        "path": "/api/analytics/metrics",
+        "method": "GET",
+        "operation": "analytics",
+        "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [
+          {
+            "name": "operation",
+            "type": "str",
+            "description": "Aggregation: sum, count, avg",
+            "required": true
+          },
+          {
+            "name": "column",
+            "type": "str",
+            "description": "Target column",
+            "required": true
+          },
+          {
+            "name": "group_by",
+            "type": "str",
+            "description": "Group by column name",
+            "required": false
+          }
+        ],
+        "request_fields": [],
+        "response_fields": [
+          "value"
+        ]
+      }
+    ]
+  },
+  "ui_schema": {
+    "nav_items": [
+      {
+        "label": "Sales Pipeline",
+        "route": "/",
+        "icon": "home",
+        "required_role": null
+      }
+    ],
+    "pages": [
+      {
+        "route": "/",
+        "title": "Sales Pipeline",
+        "icon": null,
+        "required_role": null,
+        "is_premium_gated": false,
+        "components": [
+          {
+            "id": "sales_pipeline_header",
+            "type": "Header",
+            "title": "Sales Pipeline",
+            "target_api_path": null,
+            "grid_span": 12,
+            "props": {
+              "subtitle": "Manage your sales pipeline"
+            }
+          },
+          {
+            "id": "table_customers_grid",
+            "type": "Table",
+            "title": "Customers Database",
+            "target_api_path": "/api/customers",
+            "grid_span": 12,
+            "props": {
+              "table_name": "customers",
+              "columns": [
+                "id",
+                "full_name",
+                "deal_value"
+              ],
+              "actions": [
+                "edit",
+                "delete"
+              ]
+            }
+          },
+          {
+            "id": "metric_customers_card",
+            "type": "MetricCard",
+            "title": "Total Pipeline Value",
+            "target_api_path": "/api/analytics/metrics",
+            "grid_span": 6,
+            "props": {
+              "operation": "sum",
+              "column": "deal_value",
+              "label": "Total Pipeline Value",
+              "icon": "dollar-sign"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "auth_schema": {
+    "roles": [
+      {
+        "role_name": "admin",
+        "description": "Full control over database CRUD, settings, and team access",
+        "allowed_scopes": [
+          "*:read",
+          "*:write",
+          "*:delete",
+          "analytics:view"
+        ]
+      },
+      {
+        "role_name": "sales_rep",
+        "description": "Standard read and write access to core data streams",
+        "allowed_scopes": [
+          "*:read",
+          "*:write"
+        ]
+      },
+      {
+        "role_name": "viewer",
+        "description": "ReadOnly auditing access",
+        "allowed_scopes": [
+          "*:read"
+        ]
+      }
+    ],
+    "premium_gating": {
+      "is_gating_enabled": false,
+      "premium_features": [],
+      "upgrade_message": "This high-impact dashboard requires an Active Enterprise Subscription. Contact Sales to unlock."
+    }
+  }
+}
