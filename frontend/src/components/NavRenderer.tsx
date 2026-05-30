@@ -69,7 +69,9 @@ export const NavRenderer: React.FC<NavRendererProps> = ({
         <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold px-3 block mb-2">Main Navigation</label>
         {navItems.map((item, index) => {
           const isGated = !!(item.required_role && item.required_role !== activeRole && activeRole !== "admin");
-          const isActive = activeRoute === item.route;
+          const isActive =
+            (item.route || "").trim().replace(/^\/+|\/+$/g, "").toLowerCase() ===
+            (activeRoute || "").trim().replace(/^\/+|\/+$/g, "").toLowerCase();
 
           return (
             <button

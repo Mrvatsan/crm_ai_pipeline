@@ -12,12 +12,19 @@ interface SchemaInterpreterProps {
   setActiveRole: (role: string) => void;
 }
 
+// Normalize route strings for comparison — strip leading/trailing slashes, lowercase
+const normalizeRoute = (r: string) =>
+  (r || "").trim().replace(/^\/+|\/+$/g, "").toLowerCase();
+
 export const SchemaInterpreter: React.FC<SchemaInterpreterProps> = ({
   spec,
   activeRole,
   setActiveRole,
 }) => {
-  const [activeRoute, setActiveRoute] = useState("/");
+  const pages = spec?.ui_schema?.pages || [];
+  const firstRoute = pages[0]?.route || "/";
+
+  const [activeRoute, setActiveRoute] = useState(firstRoute);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   if (!spec || !spec.ui_schema) {
@@ -28,16 +35,17 @@ export const SchemaInterpreter: React.FC<SchemaInterpreterProps> = ({
     );
   }
 
-  const { nav_items, pages } = spec.ui_schema;
+  const { nav_items } = spec.ui_schema;
   const roles = spec.auth_schema?.roles?.map((r: any) => r.role_name) || ["admin", "user"];
 
-  // Find current active page spec
-  const currentPage = pages.find((p: any) => p.route === activeRoute) || pages[0];
+  // Find current active page — normalize both sides so "/" vs "/dashboard" vs "dashboard" all match
+  const currentPage =
+    pages.find((p: any) => normalizeRoute(p.route) === normalizeRoute(activeRoute)) || pages[0];
 
   const handleDataRefresh = () => {
-    // Increment trigger to force dynamic tables & metrics to re-query database
-    setRefreshTrigger((prev) => prev + 1);
+    setRefreshTrigger(prev => prev + 1);
   };
+
 
   // Determine if active route is gated for the current simulated role
   const isRoleGated =
