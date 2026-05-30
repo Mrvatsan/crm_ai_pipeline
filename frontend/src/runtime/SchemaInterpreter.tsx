@@ -22,7 +22,7 @@ export const SchemaInterpreter: React.FC<SchemaInterpreterProps> = ({
 
   if (!spec || !spec.ui_schema) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 border border-slate-800 rounded-3xl p-12 text-slate-500 min-h-[400px]">
+      <div className="flex-1 flex flex-col items-center justify-center bg-white border border-slate-200 rounded-3xl p-12 text-slate-500 min-h-[400px]">
         <span>No dynamic application is running. Execute the AI Compiler to boot a schema runtime.</span>
       </div>
     );
@@ -51,8 +51,8 @@ export const SchemaInterpreter: React.FC<SchemaInterpreterProps> = ({
     switch (comp.type) {
       case "Header":
         return (
-          <div key={key} className="col-span-12 mb-6 border-b border-slate-800 pb-3">
-            <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-100 to-slate-400 bg-clip-text text-transparent">
+          <div key={key} className="col-span-12 mb-6 border-b border-slate-200 pb-3">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-slate-100 to-slate-600 bg-clip-text text-transparent">
               {comp.title}
             </h2>
             {comp.props?.subtitle && <p className="text-sm text-slate-500 mt-1">{comp.props.subtitle}</p>}
@@ -132,9 +132,10 @@ export const SchemaInterpreter: React.FC<SchemaInterpreterProps> = ({
   };
 
   return (
-    <div className="flex bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl min-h-[550px] relative">
+    <div className="flex bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-lg shadow-emerald-900/5 min-h-[550px] relative">
       {/* 1. Left Dynamic Nav sidebar */}
       <NavRenderer
+        appName={spec.app_name}
         navItems={nav_items}
         activeRoute={activeRoute}
         setActiveRoute={setActiveRoute}
@@ -148,10 +149,10 @@ export const SchemaInterpreter: React.FC<SchemaInterpreterProps> = ({
         {isRoleGated ? (
           /* Role Gate Block Overlay */
           <div className="py-20 flex flex-col items-center justify-center text-center max-w-md mx-auto gap-4">
-            <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center">
               <Icons.ShieldAlert className="w-8 h-8 text-red-500" />
             </div>
-            <h3 className="text-lg font-bold text-red-400">Role Access Restricted</h3>
+            <h3 className="text-lg font-bold text-red-600">Role Access Restricted</h3>
             <p className="text-xs text-slate-500 leading-relaxed">
               This page requires a higher permission tier. Switch your active role simulation inside the sidebar to bypass this gate.
             </p>

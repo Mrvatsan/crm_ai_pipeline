@@ -9,6 +9,7 @@ interface NavItem {
 }
 
 interface NavRendererProps {
+  appName?: string;
   navItems: NavItem[];
   activeRoute: string;
   setActiveRoute: (route: string) => void;
@@ -18,6 +19,7 @@ interface NavRendererProps {
 }
 
 export const NavRenderer: React.FC<NavRendererProps> = ({
+  appName,
   navItems,
   activeRoute,
   setActiveRoute,
@@ -32,26 +34,26 @@ export const NavRenderer: React.FC<NavRendererProps> = ({
   };
 
   return (
-    <div className="w-64 bg-slate-900 border-r border-slate-800 text-slate-300 flex flex-col h-full">
+    <div className="w-64 bg-slate-50 border-r border-slate-200 text-slate-700 flex flex-col h-full">
       {/* 1. Header with System Meta */}
-      <div className="p-6 border-b border-slate-800">
-        <h2 className="text-xl font-bold bg-gradient-to-r from-teal-400 to-indigo-400 bg-clip-text text-transparent flex items-center gap-2">
-          <Icons.Cpu className="w-6 h-6 text-teal-400 animate-pulse" />
-          Runtime App
+      <div className="p-6 border-b border-slate-200">
+        <h2 className="text-xl font-bold bg-gradient-to-r from-[#10B981] to-teal-500 bg-clip-text text-transparent flex items-center gap-2">
+          <Icons.Cpu className="w-6 h-6 text-[#10B981] animate-pulse" />
+          {appName || "Runtime App"}
         </h2>
         <p className="text-xs text-slate-500 mt-1 uppercase font-semibold tracking-wider">Executable Runtime</p>
       </div>
 
       {/* 2. Interactive Role Switcher Selector */}
-      <div className="p-4 mx-4 my-3 bg-slate-950 rounded-xl border border-slate-800">
+      <div className="p-4 mx-4 my-3 bg-white rounded-xl border border-slate-200">
         <label className="text-xs text-slate-500 uppercase tracking-widest font-bold block mb-2 flex items-center gap-1.5">
-          <Icons.ShieldAlert className="w-3.5 h-3.5 text-teal-500" />
+          <Icons.ShieldAlert className="w-3.5 h-3.5 text-emerald-500" />
           Simulate Active Role
         </label>
         <select
           value={activeRole}
           onChange={(e) => setActiveRole(e.target.value)}
-          className="w-full bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-teal-500 focus:outline-none"
+          className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-emerald-500 focus:outline-none"
         >
           {availableRoles.map((role) => (
             <option key={role} value={role}>
@@ -59,7 +61,7 @@ export const NavRenderer: React.FC<NavRendererProps> = ({
             </option>
           ))}
         </select>
-        <span className="text-[10px] text-slate-600 block mt-1.5 italic">RBAC policies are dynamically applied</span>
+        <span className="text-[10px] text-slate-500 block mt-1.5 italic">RBAC policies are dynamically applied</span>
       </div>
 
       {/* 3. Navigation items lists */}
@@ -78,10 +80,10 @@ export const NavRenderer: React.FC<NavRendererProps> = ({
               disabled={isGated}
               className={`w-full text-left flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
                 isGated
-                  ? "opacity-40 cursor-not-allowed text-slate-600 hover:bg-transparent"
+                  ? "opacity-40 cursor-not-allowed text-slate-500 hover:bg-transparent"
                   : isActive
-                  ? "bg-teal-500/10 text-teal-400 border-l-2 border-teal-500 font-semibold"
-                  : "hover:bg-slate-800/50 text-slate-400 hover:text-slate-200"
+                  ? "bg-emerald-50 text-emerald-600 border-l-2 border-emerald-500 font-semibold"
+                  : "hover:bg-slate-100/50 text-slate-600 hover:text-slate-900"
               }`}
             >
               <div className="flex items-center gap-3">
@@ -93,9 +95,9 @@ export const NavRenderer: React.FC<NavRendererProps> = ({
               {item.required_role && (
                 <div className="flex items-center">
                   {isGated ? (
-                    <Icons.Lock className="w-3.5 h-3.5 text-slate-600" />
+                    <Icons.Lock className="w-3.5 h-3.5 text-slate-500" />
                   ) : (
-                    <span className="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded uppercase font-bold">
+                    <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded uppercase font-bold">
                       {item.required_role}
                     </span>
                   )}
@@ -107,7 +109,7 @@ export const NavRenderer: React.FC<NavRendererProps> = ({
       </div>
       
       {/* Footer Info */}
-      <div className="p-4 border-t border-slate-800 text-center text-xs text-slate-600">
+      <div className="p-4 border-t border-slate-200 text-center text-xs text-slate-500">
         Active Schema Version 1.0.0
       </div>
     </div>

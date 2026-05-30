@@ -16,6 +16,8 @@ interface ChartRendererProps {
     chart_type?: string;
     x_axis?: string;
     y_axis?: string;
+    table_name?: string;
+    target_table?: string;
   };
   refreshTrigger: number;
 }
@@ -41,6 +43,11 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
       let query = `?operation=${props.operation}&column=${props.column}`;
       if (props.group_by) {
         query += `&group_by=${props.group_by}`;
+      }
+      if (props.table_name) {
+        query += `&table_name=${props.table_name}`;
+      } else if (props.target_table) {
+        query += `&table_name=${props.target_table}`;
       }
 
       const response = await fetch(`http://localhost:8000${targetApiPath}${query}`);
@@ -77,7 +84,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
   // 1. RENDER SINGLE METRIC INDICATOR CARD
   if (type === "MetricCard") {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex items-center justify-between transition-all hover:border-slate-700">
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-xl flex items-center justify-between transition-all hover:border-slate-200">
         <div>
           <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">
             {props.label || title}
@@ -87,7 +94,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
           ) : error ? (
             <span className="text-red-400 font-semibold text-xs block mt-1">Error Loading</span>
           ) : (
-            <h4 className="text-2xl font-bold font-mono text-slate-100">
+            <h4 className="text-2xl font-bold font-mono text-slate-900">
               {props.column.includes("value") || props.column.includes("amount") ? (
                 `$${(metricValue || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
               ) : (
@@ -96,7 +103,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
             </h4>
           )}
         </div>
-        <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-center">
+        <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-center">
           {renderIcon(props.icon || "Activity")}
         </div>
       </div>
@@ -105,14 +112,14 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
 
   // 2. RENDER GORGEOUS RESPONSIVE BAR CHART GRAPH
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[280px]">
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xl flex flex-col justify-between min-h-[280px]">
       {/* Chart Header */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-        <h4 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
           <Icons.BarChart3 className="w-4 h-4 text-teal-400" />
           {title}
         </h4>
-        <span className="text-[10px] bg-slate-800 text-teal-400 px-2 py-0.5 rounded font-mono uppercase font-semibold">
+        <span className="text-[10px] bg-slate-100 text-teal-400 px-2 py-0.5 rounded font-mono uppercase font-semibold">
           Aggregation: {props.operation}
         </span>
       </div>
@@ -146,7 +153,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
             return (
               <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full group relative">
                 {/* Value Hover tooltip */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-5 bg-slate-950 text-[10px] text-teal-400 px-1.5 py-0.5 rounded border border-slate-800 z-10 font-bold font-mono">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-5 bg-white text-[10px] text-teal-400 px-1.5 py-0.5 rounded border border-slate-200 z-10 font-bold font-mono">
                   {props.column.includes("value") || props.column.includes("amount") ? `$${value.toLocaleString()}` : value}
                 </div>
                 

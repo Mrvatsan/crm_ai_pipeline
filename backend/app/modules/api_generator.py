@@ -1,20 +1,29 @@
 import os
 import json
+from typing import Optional
 from app.schemas.plan import ArchitecturePlan
 from app.schemas.api import APISchemaSpec, APIEndpoint, APIOperation, QueryParamSpec
 
-def generate_api(plan: ArchitecturePlan) -> APISchemaSpec:
+def generate_api(
+    plan: ArchitecturePlan,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None
+) -> APISchemaSpec:
     """
     Constructs concrete backend contracts listing routes, HTTP verbs, and operational bindings.
     Uses Gemini API if key is present, otherwise maps custom contracts.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from app.services.gemini_service import clean_json_response
+    from app.core import config
+    
+    api_key = api_key or os.environ.get("GEMINI_API_KEY") or config.GEMINI_API_KEY
+    model_name = model_name or os.environ.get("GEMINI_MODEL") or config.GEMINI_MODEL or "gemini-1.5-flash"
     
     if api_key:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(model_name)
             
             system_instruction = (
                 "You are an expert API software engineer. Convert an ArchitecturePlan JSON into an APISchemaSpec JSON "
@@ -43,7 +52,8 @@ def generate_api(plan: ArchitecturePlan) -> APISchemaSpec:
                 generation_config={"temperature": 0, "response_mime_type": "application/json"}
             )
             
-            data = json.loads(response.text.strip())
+            raw_json = clean_json_response(response.text)
+            data = json.loads(raw_json)
             return APISchemaSpec(**data)
         except Exception:
             pass
@@ -149,7 +159,8 @@ def generate_api(plan: ArchitecturePlan) -> APISchemaSpec:
             query_params=[
                 QueryParamSpec(name="operation", type="str", description="Aggregation: sum, count, avg", required=True),
                 QueryParamSpec(name="column", type="str", description="Target column", required=True),
-                QueryParamSpec(name="group_by", type="str", description="Group by column name", required=False)
+                QueryParamSpec(name="group_by", type="str", description="Group by column name", required=False),
+                QueryParamSpec(name="table_name", type="str", description="Target table name to aggregate", required=False)
             ],
             request_fields=[],
             response_fields=["value"]

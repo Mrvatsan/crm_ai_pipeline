@@ -9,6 +9,9 @@ from compiler_tests.test_validation import (
     test_static_analysis_validator_detects_errors,
     test_repair_engine_self_healing
 )
+from compiler_tests.test_dynamic_generation import (
+    test_verify_real_dynamic_generation
+)
 
 if __name__ == "__main__":
     print("=" * 60)
@@ -18,7 +21,8 @@ if __name__ == "__main__":
     tests = [
         ("Full compiler pipeline compilation and DB seed loading", test_full_pipeline_compilation),
         ("Static analysis validation & constraint error detection", test_static_analysis_validator_detects_errors),
-        ("Compiler target Self-Repair & dynamic role healing", test_repair_engine_self_healing)
+        ("Compiler target Self-Repair & dynamic role healing", test_repair_engine_self_healing),
+        ("Dynamic generation differentiation (CRM, HMS, Inventory)", test_verify_real_dynamic_generation)
     ]
     
     passed = 0

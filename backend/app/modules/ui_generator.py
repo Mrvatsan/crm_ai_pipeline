@@ -1,20 +1,29 @@
 import os
 import json
+from typing import Optional
 from app.schemas.plan import ArchitecturePlan
 from app.schemas.ui import UISchemaSpec, UIPage, UIComponent, NavItem, ComponentType, ChartType
 
-def generate_ui(plan: ArchitecturePlan) -> UISchemaSpec:
+def generate_ui(
+    plan: ArchitecturePlan,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None
+) -> UISchemaSpec:
     """
     Constructs concrete frontend UI layouts matching specific component tree hierarchies.
     Uses Gemini API if key is present, otherwise maps default templates.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from app.services.gemini_service import clean_json_response
+    from app.core import config
+    
+    api_key = api_key or os.environ.get("GEMINI_API_KEY") or config.GEMINI_API_KEY
+    model_name = model_name or os.environ.get("GEMINI_MODEL") or config.GEMINI_MODEL or "gemini-1.5-flash"
     
     if api_key:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(model_name)
             
             system_instruction = (
                 "You are an expert Frontend Architect. Convert an ArchitecturePlan JSON into a UISchemaSpec JSON "
@@ -42,7 +51,8 @@ def generate_ui(plan: ArchitecturePlan) -> UISchemaSpec:
                 generation_config={"temperature": 0, "response_mime_type": "application/json"}
             )
             
-            data = json.loads(response.text.strip())
+            raw_json = clean_json_response(response.text)
+            data = json.loads(raw_json)
             return UISchemaSpec(**data)
         except Exception:
             pass
@@ -92,8 +102,8 @@ def generate_ui(plan: ArchitecturePlan) -> UISchemaSpec:
             elif comp_type == "MetricCard":
                 # Render analytical metric indicators
                 tname = plan.db_tables[0].table_name
-                colname = "deal_value" if "customers" in tname else ("revenue_impact" if "metric" in tname else "id")
-                label = "Total Pipeline Value" if "customers" in tname else ("Financial Velocity" if "metric" in tname else "Total Backlog")
+                colname = "deal_value" if "customers" in tname or "leads" in tname else ("revenue_impact" if "metric" in tname or "upgrade_logs" in tname else ("consultation_fee" if "doctors" in tname else ("unit_price" if "products" in tname else "id")))
+                label = "Total Pipeline Value" if "customers" in tname or "leads" in tname else ("Financial Velocity" if "metric" in tname or "upgrade_logs" in tname else ("Total Value" if "products" in tname else "Total Records"))
                 icon = "dollar-sign" if colname != "id" else "check-square"
                 
                 components.append(
@@ -107,16 +117,17 @@ def generate_ui(plan: ArchitecturePlan) -> UISchemaSpec:
                             "operation": "sum" if colname != "id" else "count",
                             "column": colname,
                             "label": label,
-                            "icon": icon
+                            "icon": icon,
+                            "table_name": tname
                         }
                     )
                 )
 
             elif comp_type == "Chart":
                 tname = plan.db_tables[0].table_name
-                group_by_col = "status" if "customers" in tname else ("category" if "metric" in tname else "priority")
-                agg_col = "deal_value" if "customers" in tname else "id"
-                label = "Deals by Status" if "customers" in tname else "Telemetry Category Count"
+                group_by_col = "status" if "customers" in tname or "appointments" in tname else ("category" if "metric" in tname or "products" in tname else "priority")
+                agg_col = "deal_value" if "customers" in tname or "leads" in tname else ("consultation_fee" if "doctors" in tname else ("unit_price" if "products" in tname else "id"))
+                label = "Distribution by Status" if "customers" in tname or "appointments" in tname else "Distribution by Category"
                 
                 components.append(
                     UIComponent(
@@ -131,7 +142,8 @@ def generate_ui(plan: ArchitecturePlan) -> UISchemaSpec:
                             "column": agg_col,
                             "group_by": group_by_col,
                             "x_axis": group_by_col,
-                            "y_axis": "value"
+                            "y_axis": "value",
+                            "table_name": tname
                         }
                     )
                 )

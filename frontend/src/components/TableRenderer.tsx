@@ -87,11 +87,11 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
   });
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xl">
       {/* 1. Header Area with dynamic count & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
         <div>
-          <h3 className="text-lg font-bold text-slate-200 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Icons.Database className="w-5 h-5 text-teal-400" />
             {title}
           </h3>
@@ -108,14 +108,14 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
               placeholder="Search table..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-slate-200 rounded-xl pl-9 pr-4 py-1.5 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none w-48 transition-all focus:w-60"
+              className="bg-white border border-slate-200 text-slate-800 rounded-xl pl-9 pr-4 py-1.5 text-xs focus:ring-1 focus:ring-teal-500 focus:outline-none w-48 transition-all focus:w-60"
             />
             <Icons.Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-2.5" />
           </div>
 
           <button
             onClick={fetchData}
-            className="p-1.5 hover:bg-slate-800 rounded-lg border border-slate-800 transition-colors text-slate-400 hover:text-slate-200"
+            className="p-1.5 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors text-slate-500 hover:text-slate-800"
             title="Refresh Table Data"
           >
             <Icons.RotateCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-teal-400" : ""}`} />
@@ -133,7 +133,7 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
         <div className="py-10 text-center text-red-400 border border-red-900/30 bg-red-950/15 rounded-2xl flex flex-col items-center justify-center gap-2">
           <Icons.ShieldAlert className="w-8 h-8 text-red-500" />
           <p className="text-sm font-semibold">{error}</p>
-          <button onClick={fetchData} className="text-xs underline text-slate-400 hover:text-slate-200">
+          <button onClick={fetchData} className="text-xs underline text-slate-500 hover:text-slate-800">
             Retry Connection
           </button>
         </div>
@@ -145,8 +145,8 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
       ) : (
         /* 3. Table UI */
         <div className="overflow-x-auto rounded-xl border border-slate-850">
-          <table className="w-full text-left text-slate-300 text-xs">
-            <thead className="bg-slate-950 text-slate-500 uppercase tracking-widest text-[9px] font-bold border-b border-slate-850">
+          <table className="w-full text-left text-slate-700 text-xs">
+            <thead className="bg-white text-slate-500 uppercase tracking-widest text-[9px] font-bold border-b border-slate-850">
               <tr>
                 <th className="px-4 py-3">ID</th>
                 {displayCols.map((c) => (
@@ -157,15 +157,15 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
                 {actions.length > 0 && <th className="px-4 py-3 text-right">Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-850 bg-slate-900/50">
+            <tbody className="divide-y divide-slate-850 bg-slate-50/50">
               {filteredData.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-800/30 transition-colors">
+                <tr key={row.id} className="hover:bg-slate-100/30 transition-colors">
                   <td className="px-4 py-3.5 font-mono text-slate-500 font-bold">#{row.id}</td>
                   {displayCols.map((col) => {
                     const value = row[col];
                     const isCurrency = col.includes("value") || col.includes("amount") || col.includes("impact");
                     return (
-                      <td key={col} className="px-4 py-3.5 font-medium text-slate-300">
+                      <td key={col} className="px-4 py-3.5 font-medium text-slate-700">
                         {isCurrency && typeof value === "number" ? (
                           <span className="text-teal-400 font-semibold font-mono">
                             ${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -173,7 +173,7 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
                         ) : typeof value === "boolean" ? (
                           <span
                             className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                              value ? "bg-emerald-950 text-emerald-400" : "bg-red-950/55 text-red-400"
+                              value ? "bg-emerald-950 text-emerald-600" : "bg-red-950/55 text-red-400"
                             }`}
                           >
                             {value ? "TRUE" : "FALSE"}
@@ -192,7 +192,7 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
                           className={`p-1.5 rounded-lg border text-xs transition-all ${
                             canDelete
                               ? "border-red-900/40 text-red-500 hover:bg-red-950/20 hover:border-red-800"
-                              : "border-slate-800 text-slate-700 cursor-not-allowed opacity-30"
+                              : "border-slate-200 text-slate-700 cursor-not-allowed opacity-30"
                           }`}
                           disabled={!canDelete}
                           title={canDelete ? "Delete Record" : "RBAC Admin role required"}

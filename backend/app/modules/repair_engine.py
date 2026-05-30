@@ -1,10 +1,15 @@
 import os
 import json
-from typing import List
+from typing import List, Optional
 from app.schemas.app_spec import AppSpecification
 from app.schemas.auth import RolePermission
 
-def repair_spec(spec: AppSpecification, errors: List[str]) -> AppSpecification:
+def repair_spec(
+    spec: AppSpecification,
+    errors: List[str],
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None
+) -> AppSpecification:
     """
     Self-healing compiler repair engine. Corrects mismatched DB, API, UI, and Auth integrations.
     Uses Gemini API if key is present, otherwise executes self-repair heuristics locally.
@@ -12,13 +17,17 @@ def repair_spec(spec: AppSpecification, errors: List[str]) -> AppSpecification:
     if not errors:
         return spec
 
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from app.services.gemini_service import clean_json_response
+    from app.core import config
+    
+    api_key = api_key or os.environ.get("GEMINI_API_KEY") or config.GEMINI_API_KEY
+    model_name = model_name or os.environ.get("GEMINI_MODEL") or config.GEMINI_MODEL or "gemini-1.5-flash"
     
     if api_key:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(model_name)
             
             system_instruction = (
                 "You are an expert compiler repair agent. You will receive an AppSpecification JSON "
@@ -37,7 +46,8 @@ def repair_spec(spec: AppSpecification, errors: List[str]) -> AppSpecification:
                 generation_config={"temperature": 0, "response_mime_type": "application/json"}
             )
             
-            data = json.loads(response.text.strip())
+            raw_json = clean_json_response(response.text)
+            data = json.loads(raw_json)
             return AppSpecification(**data)
         except Exception:
             pass

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Query
+from fastapi import FastAPI, HTTPException, Request, Query, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
@@ -55,13 +55,22 @@ class RepairRequest(BaseModel):
 # ==========================================
 
 @app.post("/generate", tags=["AI App Compiler"], response_model=Dict[str, Any])
-def generate_endpoint(req: CompileRequest):
+def generate_endpoint(
+    req: CompileRequest,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    x_gemini_model: Optional[str] = Header(None, alias="X-Gemini-Model")
+):
     """
     Compiles natural language prompt into fully integrated, strictly validated schemas.
     """
     global CURRENT_SPEC
     try:
-        spec, errors = compile_application(req.prompt)
+        spec, errors = compile_application(
+            req.prompt,
+            api_key=x_gemini_api_key,
+            model_name=x_gemini_model,
+            existing_spec=CURRENT_SPEC
+        )
         CURRENT_SPEC = spec
         with open(SPEC_CACHE_FILE, "w") as f:
             f.write(spec.model_dump_json(indent=2))
@@ -86,13 +95,22 @@ def validate_endpoint(spec: AppSpecification):
     }
 
 @app.post("/repair", tags=["AI App Compiler"])
-def repair_endpoint(req: RepairRequest):
+def repair_endpoint(
+    req: RepairRequest,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    x_gemini_model: Optional[str] = Header(None, alias="X-Gemini-Model")
+):
     """
     Triggers self-healing routine to fix compiler integration errors.
     """
     try:
         from app.modules.repair_engine import repair_spec
-        repaired = repair_spec(req.spec, req.errors)
+        repaired = repair_spec(
+            req.spec,
+            req.errors,
+            api_key=x_gemini_api_key,
+            model_name=x_gemini_model
+        )
         errors = validate_spec(repaired)
         return {
             "status": "success" if not errors else "partial_success",
@@ -107,10 +125,19 @@ def repair_endpoint(req: RepairRequest):
 # ==========================================
 
 @app.post("/api/compiler/compile", tags=["Compiler Pipeline"])
-def compile_app(req: CompileRequest):
+def compile_app(
+    req: CompileRequest,
+    x_gemini_api_key: Optional[str] = Header(None, alias="X-Gemini-API-Key"),
+    x_gemini_model: Optional[str] = Header(None, alias="X-Gemini-Model")
+):
     global CURRENT_SPEC
     try:
-        spec, errors = compile_application(req.prompt)
+        spec, errors = compile_application(
+            req.prompt,
+            api_key=x_gemini_api_key,
+            model_name=x_gemini_model,
+            existing_spec=CURRENT_SPEC
+        )
         
         # Save spec if compilation succeeded (even with errors, we want to expose it for manual tuning/repair)
         CURRENT_SPEC = spec
@@ -175,17 +202,21 @@ def validate_custom_spec(spec: AppSpecification):
 def get_analytics(
     operation: str = Query(..., description="Aggregation operation: count, sum, avg, min, max"),
     column: str = Query(..., description="Target database column to aggregate"),
-    group_by: Optional[str] = Query(None, description="Optional column to group calculations by")
+    group_by: Optional[str] = Query(None, description="Optional column to group calculations by"),
+    table_name: Optional[str] = Query(None, description="Target database table name to aggregate")
 ):
     global CURRENT_SPEC
     if not CURRENT_SPEC:
         raise HTTPException(status_code=404, detail="Application spec not initialized.")
     
-    # Identify target table from spec (first table)
-    if not CURRENT_SPEC.db_schema.tables:
+    # Identify target table
+    if table_name:
+        target_table = table_name
+    elif CURRENT_SPEC.db_schema.tables:
+        target_table = CURRENT_SPEC.db_schema.tables[0].name
+    else:
         raise HTTPException(status_code=400, detail="Active database schema has no tables.")
         
-    target_table = CURRENT_SPEC.db_schema.tables[0].name
     try:
         results = db.aggregate_records(target_table, operation, column, group_by)
         return {"status": "success", "data": results}

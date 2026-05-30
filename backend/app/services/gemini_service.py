@@ -8,15 +8,33 @@ logger = logging.getLogger("GeminiService")
 
 T = TypeVar("T", bound=BaseModel)
 
+def clean_json_response(text: str) -> str:
+    """
+    Cleans markdown formatting (like ```json ... ```) from response strings
+    to ensure safe json.loads execution.
+    """
+    text = text.strip()
+    if text.startswith("```"):
+        # Remove opening ```json or ```
+        first_newline = text.find("\n")
+        if first_newline != -1:
+            text = text[first_newline:].strip()
+        else:
+            text = text[3:].strip()
+        # Remove closing ```
+        if text.endswith("```"):
+            text = text[:-3].strip()
+    return text
+
 class GeminiService:
     """
     Service abstraction for interacting with the Google Gemini API.
     Ensures zero-temperature structural parsing, fallback resilience, and strict Pydantic parsing.
     """
-    def __init__(self):
+    def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
         from app.core import config
-        self.api_key = config.GEMINI_API_KEY
-        self.model_name = config.GEMINI_MODEL
+        self.api_key = api_key or config.GEMINI_API_KEY
+        self.model_name = model_name or config.GEMINI_MODEL
         self._model = None
         
         if self.api_key:
@@ -46,7 +64,7 @@ class GeminiService:
                     generation_config={"temperature": 0, "response_mime_type": "application/json"}
                 )
                 
-                raw_json = response.text.strip()
+                raw_json = clean_json_response(response.text)
                 data = json.loads(raw_json)
                 return response_schema(**data)
             except Exception as e:
@@ -58,62 +76,323 @@ class GeminiService:
     def _generate_fallback(self, prompt: str, response_schema: Type[T]) -> T:
         """
         Analyzes prompt keywords to generate mock data structures that strictly validate against target schemas.
+        Fully dynamic to differentiate CRM, Hospital, Inventory, and Task Board apps.
         """
-        from app.schemas.intent import IntentSpec, EntityIntent
+        from app.schemas.intent import IntentSpec, EntityIntent, DashboardWidgetIntent, AppType
         from app.schemas.plan import ArchitecturePlan, DBTablePlan, APIEndpointPlan, UIPagePlan, AuthPlanSpec
-        from app.schemas.db import DBSchemaSpec, DBTable, DBColumn, ColumnType
-        from app.schemas.api import APISchemaSpec, APIEndpoint, APIOperation
-        from app.schemas.ui import UISchemaSpec, UIPage, UIComponent, NavItem, ComponentType
-        from app.schemas.auth import AuthSchemaSpec, RolePermission, PremiumGatingConfig
-
-        prompt_lower = prompt.lower()
+        import json
         
+        prompt_lower = prompt.lower()
+        existing = getattr(self, "existing_spec", None)
+
         # Scenario 1: Target is IntentSpec
         if response_schema == IntentSpec:
-            from app.schemas.intent import AppType, DashboardWidgetIntent
-            if "project" in prompt_lower or "task" in prompt_lower:
+            # 1. Evolve existing intent if active spec exists
+            if existing:
+                entities = []
+                for table in existing.db_schema.tables:
+                    cols = [c.name for c in table.columns if c.name != "id"]
+                    entities.append(EntityIntent(
+                        name=table.name.rstrip('s').capitalize(),
+                        description=f"Core operational data for {table.name}",
+                        attributes=cols
+                    ))
+                
+                roles = [r.role_name for r in existing.auth_schema.roles]
+                dashboards = []
+                for page in existing.ui_schema.pages:
+                    for comp in page.components:
+                        if comp.type == "MetricCard" or comp.type == "Chart":
+                            dashboards.append(DashboardWidgetIntent(
+                                title=comp.title,
+                                metric_type=comp.props.get("operation", "sum"),
+                                target_column=comp.props.get("column", "id"),
+                                visual_format="metric_card" if comp.type == "MetricCard" else "bar_chart"
+                            ))
+                
+                has_payments = existing.auth_schema.premium_gating.is_gating_enabled
+                
+                # Apply conversational upgrades
+                if any(k in prompt_lower for k in ["billing", "subscription", "payment", "checkout"]):
+                    has_payments = True
+                
+                if any(k in prompt_lower for k in ["analytics", "dashboard", "chart", "metrics"]):
+                    if not dashboards:
+                        col_target = "deal_value" if any("deal_value" in e.attributes for e in entities) else "id"
+                        dashboards.append(DashboardWidgetIntent(
+                            title="Analytics Summary",
+                            metric_type="sum" if col_target != "id" else "count",
+                            target_column=col_target,
+                            visual_format="metric_card"
+                        ))
+                
                 return IntentSpec(
-                    app_name="TaskFlow Board",
-                    app_type=AppType.PROJECT_BOARD,
-                    description="Sprint planner board",
-                    entities=[EntityIntent(name="Task", description="Backlog item", attributes=["title", "status"])],
-                    roles=["manager", "developer"],
-                    dashboards=[],
+                    app_name=existing.app_name,
+                    app_type=AppType.CUSTOM,
+                    description=f"Evolved version of {existing.app_name}",
+                    entities=entities,
+                    roles=roles,
+                    dashboards=dashboards,
+                    has_auth=True,
+                    has_payments=has_payments
+                )
+
+            # 2. Build completely fresh intent spec based on keywords
+            # Domain A: Hospital Management
+            if any(k in prompt_lower for k in ["hospital", "clinic", "medical", "patient", "doctor", "appointment", "hms", "care", "health"]):
+                return IntentSpec(
+                    app_name="CarePulse Health",
+                    app_type=AppType.CUSTOM,
+                    description="Dynamic healthcare portal and appointment scheduling system",
+                    entities=[
+                        EntityIntent(name="Patient", description="Registered health seekers", attributes=["full_name", "age", "gender", "ailment", "contact_number"]),
+                        EntityIntent(name="Doctor", description="Staff physician roster", attributes=["full_name", "specialty", "department", "consultation_fee"]),
+                        EntityIntent(name="Appointment", description="Booking transaction slots", attributes=["patient_name", "doctor_name", "appointment_date", "status"])
+                    ],
+                    roles=["admin", "doctor", "receptionist"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Total Active Appointments", metric_type="count", target_column="id", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Doctor Specialties Count", metric_type="count", target_column="specialty", visual_format="bar_chart")
+                    ],
                     has_auth=True,
                     has_payments=False
                 )
-            return IntentSpec(
-                app_name="Apex CRM",
-                app_type=AppType.CRM,
-                description="Lead tracking portal",
-                entities=[EntityIntent(name="Customer", description="Lead contact", attributes=["full_name", "deal_value"])],
-                roles=["admin", "sales_rep"],
-                dashboards=[
-                    DashboardWidgetIntent(title="Total Deals", metric_type="sum", target_column="deal_value", visual_format="metric_card")
-                ],
-                has_auth=True,
-                has_payments=True
-            )
+            
+            # Domain B: Inventory Management
+            elif any(k in prompt_lower for k in ["inventory", "stock", "warehouse", "product", "supplier", "logistics"]):
+                return IntentSpec(
+                    app_name="LogiStock Inventory",
+                    app_type=AppType.CUSTOM,
+                    description="Dynamic warehousing and inventory tracking portal",
+                    entities=[
+                        EntityIntent(name="Product", description="Trackable storage units", attributes=["name", "sku", "quantity", "unit_price", "category"]),
+                        EntityIntent(name="Warehouse", description="Storage location coordinates", attributes=["location_name", "capacity", "manager", "status"]),
+                        EntityIntent(name="Supplier", description="Vendor directory list", attributes=["supplier_name", "contact_person", "email", "phone"])
+                    ],
+                    roles=["admin", "manager", "auditor"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Inventory Stock Value", metric_type="sum", target_column="unit_price", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Quantity Level by Category", metric_type="sum", target_column="quantity", visual_format="bar_chart")
+                    ],
+                    has_auth=True,
+                    has_payments=False
+                )
+
+            # Domain C: Project / Task Management Board
+            elif any(k in prompt_lower for k in ["task", "project", "backlog", "sprint", "todo", "board"]):
+                return IntentSpec(
+                    app_name="TaskFlow Board",
+                    app_type=AppType.PROJECT_BOARD,
+                    description="Agile task pipeline and backlog tracking workspace",
+                    entities=[
+                        EntityIntent(name="Task", description="Functional action item tickets", attributes=["title", "description", "status", "priority", "due_date"]),
+                        EntityIntent(name="Team_member", description="Assigned developer logs", attributes=["name", "role", "email", "productivity_rating"])
+                    ],
+                    roles=["admin", "manager", "developer"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Total Backlog Cards", metric_type="count", target_column="id", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Productivity Score Avg", metric_type="avg", target_column="productivity_rating", visual_format="bar_chart")
+                    ],
+                    has_auth=True,
+                    has_payments=False
+                )
+
+            # Domain D: CRM (Default Fallback)
+            else:
+                return IntentSpec(
+                    app_name="Apex CRM",
+                    app_type=AppType.CRM,
+                    description="Lead tracking and customer portal",
+                    entities=[
+                        EntityIntent(name="Contact", description="Lead contact directory", attributes=["full_name", "email", "phone", "job_title", "status"]),
+                        EntityIntent(name="Lead", description="Sales prospect funnel deal", attributes=["company", "email", "deal_value", "stage"]),
+                        EntityIntent(name="Customer", description="Active contracted business accounts", attributes=["full_name", "company", "email", "deal_value", "status"])
+                    ],
+                    roles=["admin", "sales_rep", "viewer"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Total Deals Value", metric_type="sum", target_column="deal_value", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Funnel Deals sum", metric_type="sum", target_column="deal_value", visual_format="bar_chart")
+                    ],
+                    has_auth=True,
+                    has_payments=True
+                )
 
         # Scenario 2: Target is ArchitecturePlan
         elif response_schema == ArchitecturePlan:
-            if "TaskFlow" in prompt or "task" in prompt_lower:
+            intent_spec = None
+            if "Intent Spec JSON:" in prompt:
+                try:
+                    json_str = prompt.split("Intent Spec JSON:")[1].strip()
+                    intent_spec = json.loads(json_str)
+                except Exception:
+                    pass
+
+            if intent_spec:
+                app_name = intent_spec.get("app_name", "Dynamic Platform")
+                entities = intent_spec.get("entities", [])
+                roles = intent_spec.get("roles", ["admin", "user"])
+                dashboards = intent_spec.get("dashboards", [])
+                has_payments = intent_spec.get("has_payments", False)
+
+                # Construct DB Tables Plan
+                db_tables = []
+                for entity in entities:
+                    tname = entity["name"].lower() + "s"
+                    cols = ["id"] + [c for c in entity["attributes"] if c != "id"]
+                    db_tables.append(DBTablePlan(
+                        table_name=tname,
+                        description=entity["description"],
+                        columns=cols,
+                        relations=[]
+                    ))
+
+                # Construct API Endpoints Plan
+                api_endpoints = []
+                for table in db_tables:
+                    tname = table.table_name
+                    api_endpoints.append(APIEndpointPlan(path=f"/api/{tname}", method="GET", action="list", auth_required=True))
+                    api_endpoints.append(APIEndpointPlan(path=f"/api/{tname}/{{id}}", method="GET", action="retrieve", auth_required=True))
+                    api_endpoints.append(APIEndpointPlan(path=f"/api/{tname}", method="POST", action="create", auth_required=True))
+                    api_endpoints.append(APIEndpointPlan(path=f"/api/{tname}/{{id}}", method="PUT", action="update", auth_required=True))
+                    api_endpoints.append(APIEndpointPlan(path=f"/api/{tname}/{{id}}", method="DELETE", action="delete", auth_required=True))
+
+                if dashboards:
+                    api_endpoints.append(APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True))
+
+                # Construct UI Pages Plan
+                ui_pages = []
+                dashboard_comps = ["Header"]
+                for widget in dashboards:
+                    dashboard_comps.append("MetricCard" if widget["visual_format"] == "metric_card" else "Chart")
+                
+                ui_pages.append(UIPagePlan(
+                    route="/",
+                    title="Control Center" if dashboards else "Workspace Board",
+                    components=dashboard_comps
+                ))
+
+                for table in db_tables:
+                    ui_pages.append(UIPagePlan(
+                        route=f"/{table.table_name}",
+                        title=f"{table.table_name.capitalize()} Registry",
+                        components=["Header", "Table", "Form"]
+                    ))
+
+                if has_payments:
+                    ui_pages.append(UIPagePlan(
+                        route="/subscriptions",
+                        title="Premium Checkout",
+                        components=["Header", "PremiumGate"]
+                    ))
+
+                gated_routes = []
+                for table in db_tables:
+                    gated_routes.append(f"/api/{table.table_name}")
+
+                return ArchitecturePlan(
+                    app_name=app_name,
+                    explanation=f"Structured blueprint for {app_name} application.",
+                    db_tables=db_tables,
+                    api_endpoints=api_endpoints,
+                    ui_pages=ui_pages,
+                    auth_policy=AuthPlanSpec(roles=roles, gated_routes=gated_routes)
+                )
+
+            # Fallback when unpacking fails
+            if "CarePulse" in prompt or "hospital" in prompt_lower:
+                return ArchitecturePlan(
+                    app_name="CarePulse Health",
+                    explanation="Modular clinical management and appointment scheduling layout",
+                    db_tables=[
+                        DBTablePlan(table_name="patients", description="Health seekers", columns=["id", "full_name", "age", "gender", "ailment", "contact_number"], relations=[]),
+                        DBTablePlan(table_name="doctors", description="Specialist doctors Roster", columns=["id", "full_name", "specialty", "department", "consultation_fee"], relations=[]),
+                        DBTablePlan(table_name="appointments", description="Slot Bookings", columns=["id", "patient_name", "doctor_name", "appointment_date", "status"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/patients", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/doctors", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/appointments", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="Clinic Dashboard", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/patients", title="Patient Records", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/doctors", title="Doctor Schedules", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/appointments", title="Appointments Registry", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "doctor", "receptionist"], gated_routes=["/api/patients"])
+                )
+
+            elif "LogiStock" in prompt or "inventory" in prompt_lower:
+                return ArchitecturePlan(
+                    app_name="LogiStock Inventory",
+                    explanation="Dynamic logistics warehousing and inventory pipeline",
+                    db_tables=[
+                        DBTablePlan(table_name="products", description="Trackable goods", columns=["id", "name", "sku", "quantity", "unit_price", "category"], relations=[]),
+                        DBTablePlan(table_name="warehouses", description="Storage sites", columns=["id", "location_name", "capacity", "manager", "status"], relations=[]),
+                        DBTablePlan(table_name="suppliers", description="Vendor directories", columns=["id", "supplier_name", "contact_person", "email", "phone"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/products", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/warehouses", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/suppliers", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="Inventory Analytics", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/products", title="Product Stock", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/warehouses", title="Warehouses", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/suppliers", title="Suppliers", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "manager", "auditor"], gated_routes=["/api/products"])
+                )
+
+            elif "TaskFlow" in prompt or "task" in prompt_lower:
                 return ArchitecturePlan(
                     app_name="TaskFlow Board",
-                    explanation="Modular task board layout",
-                    db_tables=[DBTablePlan(table_name="tasks", description="Backlog", columns=["id", "title", "status"], relations=[])],
-                    api_endpoints=[APIEndpointPlan(path="/api/tasks", method="GET", action="list", auth_required=True)],
-                    ui_pages=[UIPagePlan(route="/", title="Sprint Board", components=["Table"])],
-                    auth_policy=AuthPlanSpec(roles=["manager", "developer"], gated_routes=[])
+                    explanation="Sprint planner board layout",
+                    db_tables=[
+                        DBTablePlan(table_name="tasks", description="Action tickets", columns=["id", "title", "description", "status", "priority", "due_date"], relations=[]),
+                        DBTablePlan(table_name="team_members", description="Developers", columns=["id", "name", "role", "email", "productivity_rating"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/tasks", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/team_members", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="Sprint Board", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/tasks", title="Sprint Backlog", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/team_members", title="Team Directory", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "manager", "developer"], gated_routes=["/api/tasks"])
                 )
-            return ArchitecturePlan(
-                app_name="Apex CRM",
-                explanation="Structured sales funnel system",
-                db_tables=[DBTablePlan(table_name="customers", description="Leads", columns=["id", "full_name", "deal_value"], relations=[])],
-                api_endpoints=[APIEndpointPlan(path="/api/customers", method="GET", action="list", auth_required=True)],
-                ui_pages=[UIPagePlan(route="/", title="Sales Pipeline", components=["Table", "MetricCard"])],
-                auth_policy=AuthPlanSpec(roles=["admin", "sales_rep"], gated_routes=["/api/customers"])
-            )
+
+            else:
+                return ArchitecturePlan(
+                    app_name="Apex CRM",
+                    explanation="Lead tracking and customer portal",
+                    db_tables=[
+                        DBTablePlan(table_name="contacts", description="Lead contacts", columns=["id", "full_name", "email", "phone", "job_title", "status"], relations=[]),
+                        DBTablePlan(table_name="leads", description="Sales prospects", columns=["id", "company", "email", "deal_value", "stage"], relations=[]),
+                        DBTablePlan(table_name="customers", description="Contracted accounts", columns=["id", "full_name", "company", "email", "deal_value", "status"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/contacts", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/leads", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/customers", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="Sales Pipeline", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/contacts", title="Contacts Database", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/leads", title="Deals Board", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/customers", title="Customers List", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "sales_rep", "viewer"], gated_routes=["/api/customers"])
+                )
+
+        return self._generate_fallback(prompt, response_schema)
 
         # If schema does not have custom fallback logic, create a blank instantiation
         # to ensure the compiler pipeline does not block

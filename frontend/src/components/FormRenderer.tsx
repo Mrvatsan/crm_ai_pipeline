@@ -85,10 +85,10 @@ export const FormRenderer: React.FC<FormRendererProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-      <div className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
+    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 shadow-xl">
+      <div className="flex items-center gap-2 mb-4 border-b border-slate-200 pb-3">
         <Icons.PlusSquare className="w-5 h-5 text-teal-400" />
-        <h3 className="text-lg font-bold text-slate-200">{title}</h3>
+        <h3 className="text-lg font-bold text-slate-800">{title}</h3>
       </div>
 
       {!canWrite && (
@@ -116,7 +116,7 @@ export const FormRenderer: React.FC<FormRendererProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {fields.map((field) => (
             <div key={field.name} className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-400 tracking-wide uppercase flex items-center gap-1">
+              <label className="text-xs font-semibold text-slate-500 tracking-wide uppercase flex items-center gap-1">
                 {field.label}
                 {field.required && <span className="text-teal-400">*</span>}
               </label>
@@ -127,7 +127,7 @@ export const FormRenderer: React.FC<FormRendererProps> = ({
                   required={field.required}
                   value={formData[field.name] || ""}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-teal-500 focus:outline-none disabled:opacity-50"
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:ring-1 focus:ring-teal-500 focus:outline-none disabled:opacity-50"
                 >
                   <option value="">Select option...</option>
                   {field.options?.map((opt) => (
@@ -143,7 +143,7 @@ export const FormRenderer: React.FC<FormRendererProps> = ({
                   placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
                   value={formData[field.name] || ""}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-teal-500 focus:outline-none min-h-[80px] disabled:opacity-50 md:col-span-2"
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:ring-1 focus:ring-teal-500 focus:outline-none min-h-[80px] disabled:opacity-50 md:col-span-2"
                 />
               ) : (
                 <input
@@ -153,14 +153,14 @@ export const FormRenderer: React.FC<FormRendererProps> = ({
                   placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
                   value={formData[field.name] || ""}
                   onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-teal-500 focus:outline-none disabled:opacity-50"
+                  className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:ring-1 focus:ring-teal-500 focus:outline-none disabled:opacity-50"
                 />
               )}
             </div>
           ))}
         </div>
 
-        <div className="flex justify-end pt-3 border-t border-slate-800">
+        <div className="flex justify-end pt-3 border-t border-slate-200">
           <button
             type="submit"
             disabled={loading || !canWrite}

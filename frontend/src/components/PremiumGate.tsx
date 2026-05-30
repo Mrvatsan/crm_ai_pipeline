@@ -13,15 +13,15 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({
   onUpgrade,
 }) => {
   return (
-    <div className="relative border border-slate-800 rounded-3xl bg-slate-900/60 overflow-hidden min-h-[350px] flex items-center justify-center p-8 text-center shadow-2xl">
+    <div className="relative border border-slate-200 rounded-3xl bg-slate-50/60 overflow-hidden min-h-[350px] flex items-center justify-center p-8 text-center shadow-sm">
       {/* 1. Blurred Background Elements for Premium Glassmorphism Look */}
-      <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-md z-0" />
+      <div className="absolute inset-0 bg-white/45 backdrop-blur-md z-0" />
       <div className="absolute -top-16 -left-16 w-48 h-48 bg-teal-500/10 rounded-full blur-3xl" />
       <div className="absolute -bottom-16 -right-16 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl" />
 
       {/* 2. Interactive Overlay Container */}
       <div className="relative z-10 max-w-md flex flex-col items-center gap-4">
-        <div className="p-4 bg-slate-900 border border-slate-800 rounded-3xl shadow-xl shadow-teal-500/5 flex items-center justify-center relative">
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-3xl shadow-xl shadow-teal-500/5 flex items-center justify-center relative">
           <Icons.Gem className="w-10 h-10 text-teal-400 animate-bounce" />
           <div className="absolute -inset-0.5 bg-gradient-to-r from-teal-500 to-indigo-500 rounded-3xl opacity-25 blur" />
         </div>
@@ -30,7 +30,7 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({
           {title}
         </h3>
         
-        <p className="text-slate-400 text-xs leading-relaxed max-w-sm">
+        <p className="text-slate-500 text-xs leading-relaxed max-w-sm">
           {upgradeMessage}
         </p>
 
@@ -48,7 +48,7 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({
           
           <button
             onClick={() => alert("Monetization telemetry has been logged for evaluation checks.")}
-            className="bg-slate-950 border border-slate-800 text-slate-400 text-xs px-4 py-3 rounded-2xl hover:bg-slate-900 transition-colors"
+            className="bg-white border border-slate-200 text-slate-500 text-xs px-4 py-3 rounded-2xl hover:bg-slate-50 transition-colors"
           >
             View Pricing Plans
           </button>

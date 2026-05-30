@@ -1,20 +1,29 @@
 import os
 import json
+from typing import Optional
 from app.schemas.plan import ArchitecturePlan
 from app.schemas.db import DBSchemaSpec, DBTable, DBColumn, ColumnType
 
-def generate_db(plan: ArchitecturePlan) -> DBSchemaSpec:
+def generate_db(
+    plan: ArchitecturePlan,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None
+) -> DBSchemaSpec:
     """
     Translates architectural layout database structures into DB column definitions with rich mock seeds.
     Uses Gemini API if key is present, otherwise maps custom schemas deterministically.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from app.services.gemini_service import clean_json_response
+    from app.core import config
+    
+    api_key = api_key or os.environ.get("GEMINI_API_KEY") or config.GEMINI_API_KEY
+    model_name = model_name or os.environ.get("GEMINI_MODEL") or config.GEMINI_MODEL or "gemini-1.5-flash"
     
     if api_key:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(model_name)
             
             system_instruction = (
                 "You are an expert DB database developer. Convert an ArchitecturePlan JSON into a DBSchemaSpec JSON "
@@ -38,122 +47,125 @@ def generate_db(plan: ArchitecturePlan) -> DBSchemaSpec:
                 generation_config={"temperature": 0, "response_mime_type": "application/json"}
             )
             
-            data = json.loads(response.text.strip())
+            raw_json = clean_json_response(response.text)
+            data = json.loads(raw_json)
             return DBSchemaSpec(**data)
         except Exception:
             pass
 
-    # High fidelity local generator
-    if "TaskFlow" in plan.app_name:
-        return DBSchemaSpec(
-            tables=[
-                DBTable(
-                    name="team_members",
-                    columns=[
-                        DBColumn(name="id", type=ColumnType.INTEGER, is_primary_key=True, is_nullable=False),
-                        DBColumn(name="name", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="role", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="email", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="productivity_rating", type=ColumnType.REAL, default_value="9.0")
-                    ],
-                    seed_data=[
-                        {"name": "Sarah Connor", "role": "Project Manager", "email": "sarah@taskflow.io", "productivity_rating": 9.5},
-                        {"name": "John Doe", "role": "Lead Developer", "email": "john@taskflow.io", "productivity_rating": 9.2},
-                        {"name": "Marcus Wright", "role": "DevOps Engineer", "email": "marcus@taskflow.io", "productivity_rating": 8.8}
-                    ]
-                ),
-                DBTable(
-                    name="tasks",
-                    columns=[
-                        DBColumn(name="id", type=ColumnType.INTEGER, is_primary_key=True, is_nullable=False),
-                        DBColumn(name="title", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="description", type=ColumnType.TEXT),
-                        DBColumn(name="status", type=ColumnType.TEXT, default_value="'Todo'"),
-                        DBColumn(name="priority", type=ColumnType.TEXT, default_value="'Medium'"),
-                        DBColumn(name="due_date", type=ColumnType.TEXT),
-                        DBColumn(name="assigned_to", type=ColumnType.INTEGER, foreign_key="team_members.id")
-                    ],
-                    seed_data=[
-                        {"title": "Deploy AWS Cluster", "description": "Configure dynamic ECS service clusters", "status": "In Progress", "priority": "High", "due_date": "2026-06-05", "assigned_to": 3},
-                        {"title": "Refactor Schema Renderer", "description": "Support interactive premium grid layers", "status": "Todo", "priority": "High", "due_date": "2026-06-10", "assigned_to": 2},
-                        {"title": "Sprint Planning Meeting", "description": "Align on compiler pipelines metrics", "status": "Completed", "priority": "Low", "due_date": "2026-05-28", "assigned_to": 1}
-                    ]
-                )
+    # High fidelity dynamic local DB Schema Spec builder!
+    tables = []
+    for table_plan in plan.db_tables:
+        tname = table_plan.table_name
+        columns = []
+        for col_name in table_plan.columns:
+            # Determine column type dynamically
+            col_type = ColumnType.TEXT
+            if col_name == "id":
+                col_type = ColumnType.INTEGER
+            elif any(k in col_name.lower() for k in ["price", "value", "amount", "revenue", "fee", "cost", "rating"]):
+                col_type = ColumnType.REAL
+            elif any(k in col_name.lower() for k in ["age", "quantity", "count", "assigned_to", "doctor_id", "patient_id", "product_id"]):
+                col_type = ColumnType.INTEGER
+            elif col_name.startswith("is_") or col_name.startswith("has_"):
+                col_type = ColumnType.BOOLEAN
+                
+            columns.append(DBColumn(
+                name=col_name,
+                type=col_type,
+                is_primary_key=True if col_name == "id" else False,
+                is_nullable=False if col_name == "id" else True,
+                default_value="0.0" if col_type == ColumnType.REAL else ("0" if col_type == ColumnType.INTEGER else None)
+            ))
+            
+        # Build beautiful seed data dynamically based on table keywords!
+        seed_data = []
+        if "patient" in tname.lower():
+            seed_data = [
+                {"full_name": "Peter Parker", "age": 22, "gender": "Male", "ailment": "Spider Bite", "contact_number": "555-1234"},
+                {"full_name": "Clark Kent", "age": 35, "gender": "Male", "ailment": "Kryptonite Poisoning", "contact_number": "555-5678"},
+                {"full_name": "Selina Kyle", "age": 28, "gender": "Female", "ailment": "Cat Allergy", "contact_number": "555-9012"}
             ]
-        )
+        elif "doctor" in tname.lower():
+            seed_data = [
+                {"full_name": "Dr. Stephen Strange", "specialty": "Neurosurgery", "department": "Neurology", "consultation_fee": 500.0},
+                {"full_name": "Dr. Charles Xavier", "specialty": "Psychiatry", "department": "Mental Health", "consultation_fee": 300.0},
+                {"full_name": "Dr. Harleen Quinzel", "specialty": "Clinical Psychology", "department": "Mental Health", "consultation_fee": 250.0}
+            ]
+        elif "appointment" in tname.lower():
+            seed_data = [
+                {"patient_name": "Peter Parker", "doctor_name": "Dr. Stephen Strange", "appointment_date": "2026-06-01", "status": "Confirmed"},
+                {"patient_name": "Clark Kent", "doctor_name": "Dr. Charles Xavier", "appointment_date": "2026-06-02", "status": "Pending"},
+                {"patient_name": "Selina Kyle", "doctor_name": "Dr. Harleen Quinzel", "appointment_date": "2026-06-03", "status": "Completed"}
+            ]
+        elif "product" in tname.lower():
+            seed_data = [
+                {"name": "Quantum Processor", "sku": "QP-9000", "quantity": 100, "unit_price": 499.99, "category": "Hardware"},
+                {"name": "Vibranium Shield", "sku": "VS-001", "quantity": 5, "unit_price": 9999.99, "category": "Defense"},
+                {"name": "Web Shooter Fluid", "sku": "WSF-50", "quantity": 500, "unit_price": 19.99, "category": "Consumables"}
+            ]
+        elif "warehouse" in tname.lower():
+            seed_data = [
+                {"location_name": "Silo A", "capacity": 5000, "manager": "Pepper Potts", "status": "Active"},
+                {"location_name": "Vault", "capacity": 100, "manager": "Happy Hogan", "status": "Active"},
+                {"location_name": "Silo B", "capacity": 10000, "manager": "Ned Leeds", "status": "Inactive"}
+            ]
+        elif "supplier" in tname.lower():
+            seed_data = [
+                {"supplier_name": "Stark Industries", "contact_person": "Pepper Potts", "email": "pepper@stark.com", "phone": "555-0100"},
+                {"supplier_name": "Wakanda Design Group", "contact_person": "Shuri", "email": "shuri@wakanda.gov", "phone": "555-0111"},
+                {"supplier_name": "Oscorp Corp", "contact_person": "Norman Osborn", "email": "norman@oscorp.com", "phone": "555-0222"}
+            ]
+        elif "task" in tname.lower():
+            seed_data = [
+                {"title": "Deploy AWS Cluster", "description": "Configure dynamic ECS service clusters", "status": "In Progress", "priority": "High", "due_date": "2026-06-05"},
+                {"title": "Refactor Schema Renderer", "description": "Support interactive premium grid layers", "status": "Todo", "priority": "High", "due_date": "2026-06-10"},
+                {"title": "Sprint Planning Meeting", "description": "Align on compiler pipelines metrics", "status": "Completed", "priority": "Low", "due_date": "2026-05-28"}
+            ]
+        elif "member" in tname.lower():
+            seed_data = [
+                {"name": "Sarah Connor", "role": "Project Manager", "email": "sarah@taskflow.io", "productivity_rating": 9.5},
+                {"name": "John Doe", "role": "Lead Developer", "email": "john@taskflow.io", "productivity_rating": 9.2},
+                {"name": "Marcus Wright", "role": "DevOps Engineer", "email": "marcus@taskflow.io", "productivity_rating": 8.8}
+            ]
+        elif "contact" in tname.lower():
+            seed_data = [
+                {"full_name": "Tony Stark", "email": "tony@stark.com", "phone": "555-0100", "job_title": "CEO", "status": "Active"},
+                {"full_name": "Bruce Wayne", "email": "bruce@wayne.com", "phone": "555-0199", "job_title": "Owner", "status": "Active"},
+                {"full_name": "Diana Prince", "email": "diana@amazon.com", "phone": "555-0150", "job_title": "Director", "status": "Inactive"}
+            ]
+        elif "lead" in tname.lower():
+            seed_data = [
+                {"company": "Stark Industries", "email": "tony@stark.com", "deal_value": 750000.0, "stage": "Proposal"},
+                {"company": "Wayne Enterprises", "email": "bruce@wayne.com", "deal_value": 1250000.0, "stage": "Negotiation"},
+                {"company": "Themyscira Exports", "email": "diana@amazon.com", "deal_value": 35000.0, "stage": "Contacted"}
+            ]
+        elif "customer" in tname.lower():
+            seed_data = [
+                {"full_name": "Tony Stark", "company": "Stark Industries", "email": "tony@stark.com", "deal_value": 750000.0, "status": "Active"},
+                {"full_name": "Bruce Wayne", "company": "Wayne Enterprises", "email": "bruce@wayne.com", "deal_value": 1250000.0, "status": "Active"},
+                {"full_name": "Diana Prince", "company": "Themyscira Exports", "email": "diana@amazon.com", "deal_value": 35000.0, "status": "Active"}
+            ]
+        else:
+            # Generic fallback seed data generator
+            row = {}
+            for col in columns:
+                if col.name == "id":
+                    continue
+                if col.type == ColumnType.REAL:
+                    row[col.name] = 100.0
+                elif col.type == ColumnType.INTEGER:
+                    row[col.name] = 10
+                elif col.type == ColumnType.BOOLEAN:
+                    row[col.name] = 1
+                else:
+                    row[col.name] = f"Sample {col.name.capitalize()}"
+            seed_data = [row] * 3
 
-    elif "MetricPulse" in plan.app_name:
-        return DBSchemaSpec(
-            tables=[
-                DBTable(
-                    name="metric_records",
-                    columns=[
-                        DBColumn(name="id", type=ColumnType.INTEGER, is_primary_key=True, is_nullable=False),
-                        DBColumn(name="event_name", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="category", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="duration_ms", type=ColumnType.INTEGER),
-                        DBColumn(name="user_segment", type=ColumnType.TEXT),
-                        DBColumn(name="revenue_impact", type=ColumnType.REAL, default_value="0.0")
-                    ],
-                    seed_data=[
-                        {"event_name": "API Compilation Triggered", "category": "Compiler", "duration_ms": 450, "user_segment": "Enterprise", "revenue_impact": 5.0},
-                        {"event_name": "Dynamic DB Migration", "category": "Database", "duration_ms": 120, "user_segment": "Startup", "revenue_impact": 0.5},
-                        {"event_name": "Failed Route Gate Blocked", "category": "Security", "duration_ms": 15, "user_segment": "Free Tier", "revenue_impact": 0.0}
-                    ]
-                ),
-                DBTable(
-                    name="upgrade_logs",
-                    columns=[
-                        DBColumn(name="id", type=ColumnType.INTEGER, is_primary_key=True, is_nullable=False),
-                        DBColumn(name="customer_name", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="plan", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="amount", type=ColumnType.REAL, is_nullable=False),
-                        DBColumn(name="status", type=ColumnType.TEXT, default_value="'Active'")
-                    ],
-                    seed_data=[
-                        {"customer_name": "Acme Systems", "plan": "Enterprise Scale", "amount": 1200.0, "status": "Active"},
-                        {"customer_name": "TechInc Labs", "plan": "Team Starter", "amount": 199.0, "status": "Active"},
-                        {"customer_name": "Global Corp", "plan": "Enterprise Scale", "amount": 2500.0, "status": "Pending"}
-                    ]
-                )
-            ]
-        )
+        tables.append(DBTable(
+            name=tname,
+            columns=columns,
+            seed_data=seed_data
+        ))
 
-    else:
-        # Default CRM
-        return DBSchemaSpec(
-            tables=[
-                DBTable(
-                    name="customers",
-                    columns=[
-                        DBColumn(name="id", type=ColumnType.INTEGER, is_primary_key=True, is_nullable=False),
-                        DBColumn(name="full_name", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="company", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="email", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="phone", type=ColumnType.TEXT),
-                        DBColumn(name="deal_value", type=ColumnType.REAL, default_value="0.0"),
-                        DBColumn(name="status", type=ColumnType.TEXT, default_value="'Lead'")
-                    ],
-                    seed_data=[
-                        {"full_name": "Tony Stark", "company": "Stark Industries", "email": "tony@stark.com", "phone": "555-0100", "deal_value": 750000.0, "status": "Negotiation"},
-                        {"full_name": "Bruce Wayne", "company": "Wayne Enterprises", "email": "bruce@wayne.com", "phone": "555-0199", "deal_value": 1250000.0, "status": "Contacted"},
-                        {"full_name": "Diana Prince", "company": "Themyscira Exports", "email": "diana@amazon.com", "phone": "555-0150", "deal_value": 35000.0, "status": "Lead"}
-                    ]
-                ),
-                DBTable(
-                    name="interactions",
-                    columns=[
-                        DBColumn(name="id", type=ColumnType.INTEGER, is_primary_key=True, is_nullable=False),
-                        DBColumn(name="customer_id", type=ColumnType.INTEGER, foreign_key="customers.id"),
-                        DBColumn(name="interaction_type", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="summary", type=ColumnType.TEXT, is_nullable=False),
-                        DBColumn(name="follow_up_date", type=ColumnType.TEXT)
-                    ],
-                    seed_data=[
-                        {"customer_id": 1, "interaction_type": "Call", "summary": "Discussed upgrade from Mark VII armor integration. Highly interested.", "follow_up_date": "2026-06-02"},
-                        {"customer_id": 2, "interaction_type": "Email", "summary": "Sent enterprise billing agreement options.", "follow_up_date": "2026-06-15"},
-                        {"customer_id": 1, "interaction_type": "Meeting", "summary": "Signed preliminary licensing deal.", "follow_up_date": "2026-06-10"}
-                    ]
-                )
-            ]
-        )
+    return DBSchemaSpec(tables=tables)

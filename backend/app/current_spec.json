@@ -10,14 +10,14 @@
             "type": "integer",
             "is_primary_key": true,
             "is_nullable": false,
-            "default_value": null,
+            "default_value": "0",
             "foreign_key": null
           },
           {
             "name": "full_name",
             "type": "text",
             "is_primary_key": false,
-            "is_nullable": false,
+            "is_nullable": true,
             "default_value": null,
             "foreign_key": null
           },
@@ -25,7 +25,7 @@
             "name": "company",
             "type": "text",
             "is_primary_key": false,
-            "is_nullable": false,
+            "is_nullable": true,
             "default_value": null,
             "foreign_key": null
           },
@@ -33,7 +33,7 @@
             "name": "email",
             "type": "text",
             "is_primary_key": false,
-            "is_nullable": false,
+            "is_nullable": true,
             "default_value": null,
             "foreign_key": null
           },
@@ -58,7 +58,7 @@
             "type": "text",
             "is_primary_key": false,
             "is_nullable": true,
-            "default_value": "'Lead'",
+            "default_value": null,
             "foreign_key": null
           }
         ],
@@ -67,25 +67,22 @@
             "full_name": "Tony Stark",
             "company": "Stark Industries",
             "email": "tony@stark.com",
-            "phone": "555-0100",
             "deal_value": 750000.0,
-            "status": "Negotiation"
+            "status": "Active"
           },
           {
             "full_name": "Bruce Wayne",
             "company": "Wayne Enterprises",
             "email": "bruce@wayne.com",
-            "phone": "555-0199",
             "deal_value": 1250000.0,
-            "status": "Contacted"
+            "status": "Active"
           },
           {
             "full_name": "Diana Prince",
             "company": "Themyscira Exports",
             "email": "diana@amazon.com",
-            "phone": "555-0150",
             "deal_value": 35000.0,
-            "status": "Lead"
+            "status": "Active"
           }
         ]
       },
@@ -97,22 +94,22 @@
             "type": "integer",
             "is_primary_key": true,
             "is_nullable": false,
-            "default_value": null,
+            "default_value": "0",
             "foreign_key": null
           },
           {
             "name": "customer_id",
-            "type": "integer",
+            "type": "text",
             "is_primary_key": false,
             "is_nullable": true,
             "default_value": null,
-            "foreign_key": "customers.id"
+            "foreign_key": null
           },
           {
             "name": "interaction_type",
             "type": "text",
             "is_primary_key": false,
-            "is_nullable": false,
+            "is_nullable": true,
             "default_value": null,
             "foreign_key": null
           },
@@ -120,7 +117,7 @@
             "name": "summary",
             "type": "text",
             "is_primary_key": false,
-            "is_nullable": false,
+            "is_nullable": true,
             "default_value": null,
             "foreign_key": null
           },
@@ -135,22 +132,22 @@
         ],
         "seed_data": [
           {
-            "customer_id": 1,
-            "interaction_type": "Call",
-            "summary": "Discussed upgrade from Mark VII armor integration. Highly interested.",
-            "follow_up_date": "2026-06-02"
+            "customer_id": "Sample Customer_id",
+            "interaction_type": "Sample Interaction_type",
+            "summary": "Sample Summary",
+            "follow_up_date": "Sample Follow_up_date"
           },
           {
-            "customer_id": 2,
-            "interaction_type": "Email",
-            "summary": "Sent enterprise billing agreement options.",
-            "follow_up_date": "2026-06-15"
+            "customer_id": "Sample Customer_id",
+            "interaction_type": "Sample Interaction_type",
+            "summary": "Sample Summary",
+            "follow_up_date": "Sample Follow_up_date"
           },
           {
-            "customer_id": 1,
-            "interaction_type": "Meeting",
-            "summary": "Signed preliminary licensing deal.",
-            "follow_up_date": "2026-06-10"
+            "customer_id": "Sample Customer_id",
+            "interaction_type": "Sample Interaction_type",
+            "summary": "Sample Summary",
+            "follow_up_date": "Sample Follow_up_date"
           }
         ]
       }
@@ -185,7 +182,11 @@
           "id",
           "id",
           "full_name",
-          "deal_value"
+          "company",
+          "email",
+          "phone",
+          "deal_value",
+          "status"
         ]
       },
       {
@@ -202,7 +203,11 @@
           "id",
           "id",
           "full_name",
-          "deal_value"
+          "company",
+          "email",
+          "phone",
+          "deal_value",
+          "status"
         ]
       },
       {
@@ -216,13 +221,21 @@
         "query_params": [],
         "request_fields": [
           "full_name",
-          "deal_value"
+          "company",
+          "email",
+          "phone",
+          "deal_value",
+          "status"
         ],
         "response_fields": [
           "id",
           "id",
           "full_name",
-          "deal_value"
+          "company",
+          "email",
+          "phone",
+          "deal_value",
+          "status"
         ]
       },
       {
@@ -236,13 +249,21 @@
         "query_params": [],
         "request_fields": [
           "full_name",
-          "deal_value"
+          "company",
+          "email",
+          "phone",
+          "deal_value",
+          "status"
         ],
         "response_fields": [
           "id",
           "id",
           "full_name",
-          "deal_value"
+          "company",
+          "email",
+          "phone",
+          "deal_value",
+          "status"
         ]
       },
       {
@@ -250,6 +271,122 @@
         "method": "DELETE",
         "operation": "delete",
         "target_table": "customers",
+        "auth_required": true,
+        "allowed_roles": [
+          "admin"
+        ],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [],
+        "response_fields": [
+          "success",
+          "message"
+        ]
+      },
+      {
+        "path": "/api/interactions",
+        "method": "GET",
+        "operation": "list",
+        "target_table": "interactions",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [
+          {
+            "name": "limit",
+            "type": "int",
+            "description": "Max records to return",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "type": "int",
+            "description": "Records to offset",
+            "required": false
+          }
+        ],
+        "request_fields": [],
+        "response_fields": [
+          "id",
+          "id",
+          "customer_id",
+          "interaction_type",
+          "summary",
+          "follow_up_date"
+        ]
+      },
+      {
+        "path": "/api/interactions/{id}",
+        "method": "GET",
+        "operation": "retrieve",
+        "target_table": "interactions",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [],
+        "response_fields": [
+          "id",
+          "id",
+          "customer_id",
+          "interaction_type",
+          "summary",
+          "follow_up_date"
+        ]
+      },
+      {
+        "path": "/api/interactions",
+        "method": "POST",
+        "operation": "create",
+        "target_table": "interactions",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [
+          "customer_id",
+          "interaction_type",
+          "summary",
+          "follow_up_date"
+        ],
+        "response_fields": [
+          "id",
+          "id",
+          "customer_id",
+          "interaction_type",
+          "summary",
+          "follow_up_date"
+        ]
+      },
+      {
+        "path": "/api/interactions/{id}",
+        "method": "PUT",
+        "operation": "update",
+        "target_table": "interactions",
+        "auth_required": true,
+        "allowed_roles": [],
+        "is_premium_gated": false,
+        "query_params": [],
+        "request_fields": [
+          "customer_id",
+          "interaction_type",
+          "summary",
+          "follow_up_date"
+        ],
+        "response_fields": [
+          "id",
+          "id",
+          "customer_id",
+          "interaction_type",
+          "summary",
+          "follow_up_date"
+        ]
+      },
+      {
+        "path": "/api/interactions/{id}",
+        "method": "DELETE",
+        "operation": "delete",
+        "target_table": "interactions",
         "auth_required": true,
         "allowed_roles": [
           "admin"
@@ -288,6 +425,12 @@
             "type": "str",
             "description": "Group by column name",
             "required": false
+          },
+          {
+            "name": "table_name",
+            "type": "str",
+            "description": "Target table name to aggregate",
+            "required": false
           }
         ],
         "request_fields": [],
@@ -300,28 +443,73 @@
   "ui_schema": {
     "nav_items": [
       {
-        "label": "Sales Pipeline",
+        "label": "Control Center",
         "route": "/",
         "icon": "home",
+        "required_role": null
+      },
+      {
+        "label": "Customers Registry",
+        "route": "/customers",
+        "icon": "users",
+        "required_role": null
+      },
+      {
+        "label": "Interactions Registry",
+        "route": "/interactions",
+        "icon": "clipboard-list",
         "required_role": null
       }
     ],
     "pages": [
       {
         "route": "/",
-        "title": "Sales Pipeline",
+        "title": "Control Center",
         "icon": null,
         "required_role": null,
         "is_premium_gated": false,
         "components": [
           {
-            "id": "sales_pipeline_header",
+            "id": "control_center_header",
             "type": "Header",
-            "title": "Sales Pipeline",
+            "title": "Control Center",
             "target_api_path": null,
             "grid_span": 12,
             "props": {
-              "subtitle": "Manage your sales pipeline"
+              "subtitle": "Manage your control center"
+            }
+          },
+          {
+            "id": "metric_customers_card",
+            "type": "MetricCard",
+            "title": "Total Pipeline Value",
+            "target_api_path": "/api/analytics/metrics",
+            "grid_span": 6,
+            "props": {
+              "operation": "sum",
+              "column": "deal_value",
+              "label": "Total Pipeline Value",
+              "icon": "dollar-sign",
+              "table_name": "customers"
+            }
+          }
+        ]
+      },
+      {
+        "route": "/customers",
+        "title": "Customers Registry",
+        "icon": null,
+        "required_role": null,
+        "is_premium_gated": false,
+        "components": [
+          {
+            "id": "customers_registry_header",
+            "type": "Header",
+            "title": "Customers Registry",
+            "target_api_path": null,
+            "grid_span": 12,
+            "props": {
+              "subtitle": "Manage your customers registry"
             }
           },
           {
@@ -335,7 +523,11 @@
               "columns": [
                 "id",
                 "full_name",
-                "deal_value"
+                "company",
+                "email",
+                "phone",
+                "deal_value",
+                "status"
               ],
               "actions": [
                 "edit",
@@ -344,16 +536,127 @@
             }
           },
           {
-            "id": "metric_customers_card",
-            "type": "MetricCard",
-            "title": "Total Pipeline Value",
-            "target_api_path": "/api/analytics/metrics",
-            "grid_span": 6,
+            "id": "form_customers_create",
+            "type": "Form",
+            "title": "Add New Customer",
+            "target_api_path": "/api/customers",
+            "grid_span": 12,
             "props": {
-              "operation": "sum",
-              "column": "deal_value",
-              "label": "Total Pipeline Value",
-              "icon": "dollar-sign"
+              "table_name": "customers",
+              "fields": [
+                {
+                  "name": "full_name",
+                  "label": "Full name",
+                  "type": "text",
+                  "required": true
+                },
+                {
+                  "name": "company",
+                  "label": "Company",
+                  "type": "text",
+                  "required": true
+                },
+                {
+                  "name": "email",
+                  "label": "Email",
+                  "type": "email",
+                  "required": true
+                },
+                {
+                  "name": "phone",
+                  "label": "Phone",
+                  "type": "text",
+                  "required": true
+                },
+                {
+                  "name": "deal_value",
+                  "label": "Deal value",
+                  "type": "number",
+                  "required": true
+                },
+                {
+                  "name": "status",
+                  "label": "Status",
+                  "type": "text",
+                  "required": true
+                }
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "route": "/interactions",
+        "title": "Interactions Registry",
+        "icon": null,
+        "required_role": null,
+        "is_premium_gated": false,
+        "components": [
+          {
+            "id": "interactions_registry_header",
+            "type": "Header",
+            "title": "Interactions Registry",
+            "target_api_path": null,
+            "grid_span": 12,
+            "props": {
+              "subtitle": "Manage your interactions registry"
+            }
+          },
+          {
+            "id": "table_interactions_grid",
+            "type": "Table",
+            "title": "Interactions Database",
+            "target_api_path": "/api/interactions",
+            "grid_span": 12,
+            "props": {
+              "table_name": "interactions",
+              "columns": [
+                "id",
+                "customer_id",
+                "interaction_type",
+                "summary",
+                "follow_up_date"
+              ],
+              "actions": [
+                "edit",
+                "delete"
+              ]
+            }
+          },
+          {
+            "id": "form_interactions_create",
+            "type": "Form",
+            "title": "Add New Interaction",
+            "target_api_path": "/api/interactions",
+            "grid_span": 12,
+            "props": {
+              "table_name": "interactions",
+              "fields": [
+                {
+                  "name": "customer_id",
+                  "label": "Customer id",
+                  "type": "text",
+                  "required": true
+                },
+                {
+                  "name": "interaction_type",
+                  "label": "Interaction type",
+                  "type": "text",
+                  "required": true
+                },
+                {
+                  "name": "summary",
+                  "label": "Summary",
+                  "type": "text",
+                  "required": true
+                },
+                {
+                  "name": "follow_up_date",
+                  "label": "Follow up date",
+                  "type": "date",
+                  "required": true
+                }
+              ]
             }
           }
         ]

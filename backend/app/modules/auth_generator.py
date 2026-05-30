@@ -1,20 +1,29 @@
 import os
 import json
+from typing import Optional
 from app.schemas.plan import ArchitecturePlan
 from app.schemas.auth import AuthSchemaSpec, RolePermission, PremiumGatingConfig
 
-def generate_auth(plan: ArchitecturePlan) -> AuthSchemaSpec:
+def generate_auth(
+    plan: ArchitecturePlan,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None
+) -> AuthSchemaSpec:
     """
     Formulates RBAC policies mapping roles to permitted API scopes and monetization restrictions.
     Uses Gemini API if key is present, otherwise maps custom access specifications.
     """
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from app.services.gemini_service import clean_json_response
+    from app.core import config
+    
+    api_key = api_key or os.environ.get("GEMINI_API_KEY") or config.GEMINI_API_KEY
+    model_name = model_name or os.environ.get("GEMINI_MODEL") or config.GEMINI_MODEL or "gemini-1.5-flash"
     
     if api_key:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel(model_name)
             
             system_instruction = (
                 "You are an expert Security Engineer. Convert an ArchitecturePlan JSON into an AuthSchemaSpec JSON "
@@ -37,7 +46,8 @@ def generate_auth(plan: ArchitecturePlan) -> AuthSchemaSpec:
                 generation_config={"temperature": 0, "response_mime_type": "application/json"}
             )
             
-            data = json.loads(response.text.strip())
+            raw_json = clean_json_response(response.text)
+            data = json.loads(raw_json)
             return AuthSchemaSpec(**data)
         except Exception:
             pass

@@ -49,7 +49,7 @@ def test_static_analysis_validator_detects_errors():
             break
             
     assert table_comp is not None
-    table_comp.props["table_name"] = "customers"
+    tname = table_comp.props.get("table_name", "customers")
     table_comp.props["columns"].append("salary") # Mismatch!
     
     # 2. Inject an invalid role requirement on a UI Page
@@ -83,7 +83,7 @@ def test_repair_engine_self_healing():
             break
             
     assert table_comp is not None
-    table_comp.props["table_name"] = "customers"
+    tname = table_comp.props.get("table_name", "customers")
     table_comp.props["columns"].append("secret_revenue_stream")
     
     # Inject bad page role

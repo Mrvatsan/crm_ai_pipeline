@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from app.schemas.app_spec import AppSpecification
 from app.modules.intent_extractor import extract_intent
 from app.modules.planner import plan_architecture
@@ -14,23 +14,29 @@ from app.database.dynamic_db import init_db
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("CompilerPipeline")
 
-def compile_application(prompt: str, max_repair_attempts: int = 3) -> Tuple[AppSpecification, List[str]]:
+def compile_application(
+    prompt: str,
+    max_repair_attempts: int = 3,
+    api_key: Optional[str] = None,
+    model_name: Optional[str] = None,
+    existing_spec: Optional[AppSpecification] = None
+) -> Tuple[AppSpecification, List[str]]:
     """
     Compiler Pipeline:
     Natural Language -> Intent -> Plan -> Module Generation -> Validation -> Repair Loop -> Executable DB Runtime.
     Returns (CompiledAppSpecification, ValidationErrorsList).
     """
     logger.info(f"Step 1: Extracting intent from prompt: '{prompt[:60]}...'")
-    intent = extract_intent(prompt)
+    intent = extract_intent(prompt, api_key=api_key, model_name=model_name, existing_spec=existing_spec)
     
     logger.info(f"Step 2: Designing architecture plan for app: '{intent.app_name}'")
-    plan = plan_architecture(intent)
+    plan = plan_architecture(intent, api_key=api_key, model_name=model_name, existing_spec=existing_spec)
     
     logger.info("Step 3: Generating modular schemas (DB, API, UI, Auth)")
-    db_spec = generate_db(plan)
-    api_spec = generate_api(plan)
-    ui_spec = generate_ui(plan)
-    auth_spec = generate_auth(plan)
+    db_spec = generate_db(plan, api_key=api_key, model_name=model_name)
+    api_spec = generate_api(plan, api_key=api_key, model_name=model_name)
+    ui_spec = generate_ui(plan, api_key=api_key, model_name=model_name)
+    auth_spec = generate_auth(plan, api_key=api_key, model_name=model_name)
     
     spec = AppSpecification(
         app_name=plan.app_name,
@@ -50,7 +56,7 @@ def compile_application(prompt: str, max_repair_attempts: int = 3) -> Tuple[AppS
         for err in errors:
             logger.warning(f" - [COMPILER ERROR]: {err}")
             
-        spec = repair_spec(spec, errors)
+        spec = repair_spec(spec, errors, api_key=api_key, model_name=model_name)
         errors = validate_spec(spec)
         attempt += 1
         
