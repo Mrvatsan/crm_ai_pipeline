@@ -11,5 +11,5 @@
 export const API_BASE_URL: string =
   import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD
-    ? "https://ai-compiler-backend.onrender.com"
+    ? "https://ai-compiler-backend-wz1n.onrender.com"
     : "http://localhost:8000");
