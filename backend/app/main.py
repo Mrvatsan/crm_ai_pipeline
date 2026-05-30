@@ -70,12 +70,29 @@ def generate_endpoint(
     Compiles natural language prompt into fully integrated, strictly validated schemas.
     """
     global CURRENT_SPEC
+
+    # Detect if this is a fresh domain prompt (build a brand-new app) vs a conversational evolution.
+    # For fresh prompts we do NOT pass existing_spec so the fallback/AI generates a clean slate.
+    FRESH_DOMAIN_KEYWORDS = [
+        "build a", "build an", "create a", "create an", "generate a", "generate an",
+        "hospital", "clinic", "medical", "patient", "doctor",
+        "inventory", "stock", "warehouse", "supplier", "logistics",
+        "onboarding", "onboard", "employee", "hr", "human resource", "hiring", "recruitment",
+        "lms", "learning", "course", "education", "student", "lesson", "training",
+        "reporting", "report", "analytics", "dashboard", "kpi",
+        "task", "project", "backlog", "sprint", "todo",
+        "crm", "sales", "leads", "contacts",
+    ]
+    prompt_lower = req.prompt.lower()
+    is_fresh = any(kw in prompt_lower for kw in FRESH_DOMAIN_KEYWORDS)
+    context_spec = None if is_fresh else CURRENT_SPEC
+
     try:
         spec, errors = compile_application(
             req.prompt,
             api_key=x_gemini_api_key,
             model_name=x_gemini_model,
-            existing_spec=CURRENT_SPEC
+            existing_spec=context_spec
         )
         CURRENT_SPEC = spec
         with open(SPEC_CACHE_FILE, "w") as f:

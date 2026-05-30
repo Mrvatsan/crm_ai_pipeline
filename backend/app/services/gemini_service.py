@@ -138,7 +138,7 @@ class GeminiService:
                 )
 
             # 2. Build completely fresh intent spec based on keywords
-            # Domain A: Hospital Management
+            # Domain A: Hospital / Clinic
             if any(k in prompt_lower for k in ["hospital", "clinic", "medical", "patient", "doctor", "appointment", "hms", "care", "health"]):
                 return IntentSpec(
                     app_name="CarePulse Health",
@@ -157,8 +157,8 @@ class GeminiService:
                     has_auth=True,
                     has_payments=False
                 )
-            
-            # Domain B: Inventory Management
+
+            # Domain B: Inventory / Warehouse
             elif any(k in prompt_lower for k in ["inventory", "stock", "warehouse", "product", "supplier", "logistics"]):
                 return IntentSpec(
                     app_name="LogiStock Inventory",
@@ -178,7 +178,7 @@ class GeminiService:
                     has_payments=False
                 )
 
-            # Domain C: Project / Task Management Board
+            # Domain C: Project / Task Board
             elif any(k in prompt_lower for k in ["task", "project", "backlog", "sprint", "todo", "board"]):
                 return IntentSpec(
                     app_name="TaskFlow Board",
@@ -197,7 +197,67 @@ class GeminiService:
                     has_payments=False
                 )
 
-            # Domain D: CRM (Default Fallback)
+            # Domain D: Reporting / Analytics Dashboard
+            elif any(k in prompt_lower for k in ["reporting", "report", "analytics", "dashboard", "kpi", "metrics", "bi", "business intelligence"]):
+                return IntentSpec(
+                    app_name="InsightBoard Analytics",
+                    app_type=AppType.CUSTOM,
+                    description="Executive KPI reporting and business analytics dashboard",
+                    entities=[
+                        EntityIntent(name="Report", description="Generated analytical report", attributes=["title", "category", "generated_by", "status", "created_at"]),
+                        EntityIntent(name="Metric", description="Tracked business KPI", attributes=["name", "value", "unit", "target", "period"]),
+                        EntityIntent(name="Department", description="Business unit", attributes=["name", "head", "budget", "headcount"])
+                    ],
+                    roles=["admin", "analyst", "viewer"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Total Reports Generated", metric_type="count", target_column="id", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Budget by Department", metric_type="sum", target_column="budget", visual_format="bar_chart")
+                    ],
+                    has_auth=True,
+                    has_payments=False
+                )
+
+            # Domain E: Employee Onboarding
+            elif any(k in prompt_lower for k in ["onboarding", "onboard", "employee", "hr", "human resource", "hiring", "recruitment", "recruit"]):
+                return IntentSpec(
+                    app_name="PeopleFlow HR",
+                    app_type=AppType.CUSTOM,
+                    description="Employee onboarding and HR management portal",
+                    entities=[
+                        EntityIntent(name="Employee", description="Staff member record", attributes=["full_name", "email", "department", "role", "start_date", "status"]),
+                        EntityIntent(name="Task", description="Onboarding checklist item", attributes=["title", "assigned_to", "due_date", "completed", "category"]),
+                        EntityIntent(name="Department", description="Organizational unit", attributes=["name", "manager", "headcount", "budget"])
+                    ],
+                    roles=["admin", "hr_manager", "employee"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Employees Onboarded", metric_type="count", target_column="id", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Headcount by Department", metric_type="sum", target_column="headcount", visual_format="bar_chart")
+                    ],
+                    has_auth=True,
+                    has_payments=False
+                )
+
+            # Domain F: LMS / Learning Management
+            elif any(k in prompt_lower for k in ["lms", "learning", "course", "education", "student", "lesson", "training", "e-learning", "elearning"]):
+                return IntentSpec(
+                    app_name="LearnSphere LMS",
+                    app_type=AppType.CUSTOM,
+                    description="Learning management system for courses and students",
+                    entities=[
+                        EntityIntent(name="Course", description="Learning curriculum unit", attributes=["title", "instructor", "category", "duration_hours", "status"]),
+                        EntityIntent(name="Student", description="Enrolled learner profile", attributes=["full_name", "email", "enrolled_course", "progress", "grade"]),
+                        EntityIntent(name="Lesson", description="Individual learning module", attributes=["title", "course", "duration_minutes", "type", "completed"])
+                    ],
+                    roles=["admin", "instructor", "student"],
+                    dashboards=[
+                        DashboardWidgetIntent(title="Total Enrolled Students", metric_type="count", target_column="id", visual_format="metric_card"),
+                        DashboardWidgetIntent(title="Avg Progress by Course", metric_type="avg", target_column="progress", visual_format="bar_chart")
+                    ],
+                    has_auth=True,
+                    has_payments=True
+                )
+
+            # Domain G: CRM (Default Fallback)
             else:
                 return IntentSpec(
                     app_name="Apex CRM",
@@ -366,6 +426,78 @@ class GeminiService:
                         UIPagePlan(route="/team_members", title="Team Directory", components=["Header", "Table", "Form"])
                     ],
                     auth_policy=AuthPlanSpec(roles=["admin", "manager", "developer"], gated_routes=["/api/tasks"])
+                )
+
+            elif any(k in prompt_lower for k in ["reporting", "report", "analytics", "dashboard", "kpi", "metrics", "bi"]) or "InsightBoard" in prompt:
+                return ArchitecturePlan(
+                    app_name="InsightBoard Analytics",
+                    explanation="Executive KPI reporting and business analytics platform",
+                    db_tables=[
+                        DBTablePlan(table_name="reports", description="Generated reports", columns=["id", "title", "category", "generated_by", "status", "created_at"], relations=[]),
+                        DBTablePlan(table_name="metrics", description="Tracked KPIs", columns=["id", "name", "value", "unit", "target", "period"], relations=[]),
+                        DBTablePlan(table_name="departments", description="Business units", columns=["id", "name", "head", "budget", "headcount"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/reports", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/metrics", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/departments", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="Analytics Overview", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/reports", title="Reports Registry", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/metrics", title="KPI Tracker", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/departments", title="Departments", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "analyst", "viewer"], gated_routes=["/api/reports"])
+                )
+
+            elif any(k in prompt_lower for k in ["onboarding", "onboard", "employee", "hr", "human resource", "hiring", "recruitment"]) or "PeopleFlow" in prompt:
+                return ArchitecturePlan(
+                    app_name="PeopleFlow HR",
+                    explanation="Employee onboarding and HR management platform",
+                    db_tables=[
+                        DBTablePlan(table_name="employees", description="Staff records", columns=["id", "full_name", "email", "department", "role", "start_date", "status"], relations=[]),
+                        DBTablePlan(table_name="tasks", description="Onboarding tasks", columns=["id", "title", "assigned_to", "due_date", "completed", "category"], relations=[]),
+                        DBTablePlan(table_name="departments", description="Org units", columns=["id", "name", "manager", "headcount", "budget"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/employees", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/tasks", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/departments", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="HR Dashboard", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/employees", title="Employee Directory", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/tasks", title="Onboarding Tasks", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/departments", title="Departments", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "hr_manager", "employee"], gated_routes=["/api/employees"])
+                )
+
+            elif any(k in prompt_lower for k in ["lms", "learning", "course", "education", "student", "lesson", "training", "e-learning"]) or "LearnSphere" in prompt:
+                return ArchitecturePlan(
+                    app_name="LearnSphere LMS",
+                    explanation="Learning management system for courses and enrolled students",
+                    db_tables=[
+                        DBTablePlan(table_name="courses", description="Curriculum units", columns=["id", "title", "instructor", "category", "duration_hours", "status"], relations=[]),
+                        DBTablePlan(table_name="students", description="Enrolled learners", columns=["id", "full_name", "email", "enrolled_course", "progress", "grade"], relations=[]),
+                        DBTablePlan(table_name="lessons", description="Learning modules", columns=["id", "title", "course", "duration_minutes", "type", "completed"], relations=[])
+                    ],
+                    api_endpoints=[
+                        APIEndpointPlan(path="/api/courses", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/students", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/lessons", method="GET", action="list", auth_required=True),
+                        APIEndpointPlan(path="/api/analytics/metrics", method="GET", action="analytics", auth_required=True)
+                    ],
+                    ui_pages=[
+                        UIPagePlan(route="/", title="Learning Dashboard", components=["Header", "MetricCard", "Chart"]),
+                        UIPagePlan(route="/courses", title="Course Catalog", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/students", title="Student Roster", components=["Header", "Table", "Form"]),
+                        UIPagePlan(route="/lessons", title="Lesson Library", components=["Header", "Table", "Form"])
+                    ],
+                    auth_policy=AuthPlanSpec(roles=["admin", "instructor", "student"], gated_routes=["/api/students"])
                 )
 
             else:
