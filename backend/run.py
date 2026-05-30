@@ -2,8 +2,11 @@ import uvicorn
 import os
 import sys
 
-# Ensure the parent backend directory is in the system path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Ensure the backend directory is in the system path (required for Render deployment)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Expose app at module level so `uvicorn run:app` works on Render
+from app.main import app  # noqa: E402
 
 if __name__ == "__main__":
     print("Starting AI-Native Compiler Pipeline & Runtime Backend...")
