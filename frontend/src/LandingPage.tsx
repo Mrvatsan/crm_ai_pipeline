@@ -18,11 +18,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
             AI Software Compiler
           </span>
         </div>
-        <nav className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-500">
-          <a href="#features" className="hover:text-emerald-600 transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-emerald-600 transition-colors">How it Works</a>
-          <a href="#pricing" className="hover:text-emerald-600 transition-colors">Pricing</a>
-        </nav>
+
         <button
           onClick={onStart}
           className="bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800 px-5 py-2.5 rounded-full text-xs font-bold transition-all shadow-sm flex items-center gap-2"
