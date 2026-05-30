@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as Icons from "lucide-react";
+import { API_BASE_URL } from "../config";
 
 interface ChartRendererProps {
   id: string;
@@ -39,7 +40,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
     setError(null);
     try {
       // Build dynamic aggregation path:
-      // http://localhost:8000/api/runtime/analytics/metrics?operation=X&column=Y&group_by=Z
+      // {API_BASE_URL}/api/runtime/analytics/metrics?operation=X&column=Y&group_by=Z
       let query = `?operation=${props.operation}&column=${props.column}`;
       if (props.group_by) {
         query += `&group_by=${props.group_by}`;
@@ -50,7 +51,7 @@ export const ChartRenderer: React.FC<ChartRendererProps> = ({
         query += `&table_name=${props.target_table}`;
       }
 
-      const response = await fetch(`http://localhost:8000${targetApiPath}${query}`);
+      const response = await fetch(`${API_BASE_URL}${targetApiPath}${query}`);
       if (!response.ok) {
         throw new Error(`Analytics failed with status ${response.status}`);
       }

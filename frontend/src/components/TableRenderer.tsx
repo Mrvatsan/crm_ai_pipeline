@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as Icons from "lucide-react";
+import { API_BASE_URL } from "../config";
 
 interface TableRendererProps {
   title: string;
@@ -33,7 +34,7 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`http://localhost:8000${targetApiPath}`);
+      const response = await fetch(`${API_BASE_URL}${targetApiPath}`);
       if (!response.ok) {
         throw new Error(`Failed to load dynamic table. Server responded with status ${response.status}`);
       }
@@ -61,7 +62,7 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
     }
 
     try {
-      const response = await fetch(`http://localhost:8000${targetApiPath}/${id}`, {
+      const response = await fetch(`${API_BASE_URL}${targetApiPath}/${id}`, {
         method: "DELETE",
       });
 

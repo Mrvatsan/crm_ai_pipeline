@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import * as Icons from "lucide-react";
+import { API_BASE_URL } from "../config";
 
 interface FormField {
   name: string;
@@ -59,7 +60,7 @@ export const FormRenderer: React.FC<FormRendererProps> = ({
     });
 
     try {
-      const response = await fetch(`http://localhost:8000${targetApiPath}`, {
+      const response = await fetch(`${API_BASE_URL}${targetApiPath}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

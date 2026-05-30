@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import * as Icons from "lucide-react";
 import { SchemaInterpreter } from "./runtime/SchemaInterpreter";
 import { LandingPage } from "./LandingPage";
+import { API_BASE_URL } from "./config";
 
 interface PipelineStage {
   name: string;
@@ -32,6 +33,8 @@ interface ProjectHistory {
   timestamp: string;
   spec: any;
 }
+
+
 
 export default function App() {
   const [hasStarted, setHasStarted] = useState(false);
@@ -175,7 +178,7 @@ export default function App() {
       await new Promise((r) => setTimeout(r, 2500));
 
       // Trigger dynamic generation backend
-      const response = await fetch("http://localhost:8000/generate", {
+      const response = await fetch(`${API_BASE_URL}/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -194,7 +197,7 @@ export default function App() {
       const errors = result.errors || [];
 
       // Static logical checks
-      const valResponse = await fetch("http://localhost:8000/validate", {
+      const valResponse = await fetch(`${API_BASE_URL}/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(spec),
